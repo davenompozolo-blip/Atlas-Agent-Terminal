@@ -1,33 +1,21 @@
 // Vercel Serverless Function: Anthropic proxy for the ATLAS Command Centre.
 //
-// The Command Centre UI (public/command-centre/index.html) POSTs JSON to
-// /api/command-centre. We forward to the Anthropic Messages API, keeping the
-// API key server-side. Never expose ANTHROPIC_API_KEY to the browser.
+// Supports streaming (SSE) and non-streaming modes. The API key stays server-side;
+// the browser receives streamed token deltas or a final JSON response.
 //
 // Environment variables (set in Vercel project settings):
 //   ANTHROPIC_API_KEY       - required
 //   ANTHROPIC_MODEL         - optional, default claude-opus-4-6
-//   ATLAS_ALLOWED_ORIGIN    - optional, default same-origin (no CORS header)
-//
-// Request body:
-//   {
-//     "agent": "archivist" | "architect" | "engineer" | "strategist",
-//     "system": "...",              // optional system prompt override
-//     "messages": [                 // Anthropic-shaped messages
-//       { "role": "user",  "content": "..." },
-//       { "role": "assistant", "content": "..." }
-//     ],
-//     "max_tokens": 2048            // optional, default 2048
-//   }
+//   ATLAS_ALLOWED_ORIGIN    - optional CORS origin
 
-const DEFAULT_MODEL = 'claude-opus-4-6';
-const DEFAULT_MAX_TOKENS = 2048;
+const DEFAULT_MODEL      = 'claude-opus-4-6';
+const DEFAULT_MAX_TOKENS = 16000;
 
 const AGENT_SYSTEM_PROMPTS = {
-  archivist: 'You are the ATLAS Archivist. You catalogue decisions, rationales, and portfolio history with precision. Cite dates and sources. Never speculate.',
-  architect: 'You are the ATLAS Architect. You design portfolio structure, allocation frameworks, and risk budgets. Be explicit about assumptions and trade-offs.',
-  engineer:  'You are the ATLAS Engineer. You implement quant strategies, backtests, and data pipelines. Output runnable, production-grade code with clear interfaces.',
-  strategist:'You are the ATLAS Strategist. You evaluate macro regime, positioning, and thesis integrity. Challenge assumptions and surface second-order effects.',
+  archivist:  'You are the ATLAS Archivist. You catalogue decisions, rationales, and portfolio history with precision. Cite dates and sources. Never speculate.',
+  architect:  'You are the ATLAS Architect. You design portfolio structure, allocation frameworks, and risk budgets. Be explicit about assumptions and trade-offs.',
+  engineer:   'You are the ATLAS Engineer. You implement quant strategies, backtests, and data pipelines. Output runnable, production-grade code with clear interfaces.',
+  strategist: 'You are the ATLAS Strategist. You evaluate macro regime, positioning, and thesis integrity. Challenge assumptions and surface second-order effects.',
 };
 
 module.exports = async function handler(req, res) {
@@ -47,14 +35,13 @@ module.exports = async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === 'string') {
-    try { body = JSON.parse(body); }
-    catch { return res.status(400).json({ error: 'Invalid JSON body' }); }
+    try { body = JSON.parse(body); } catch { return res.status(400).json({ error: 'Invalid JSON body' }); }
   }
   if (!body || typeof body !== 'object') {
     return res.status(400).json({ error: 'Missing request body' });
   }
 
-  const { agent, messages, system, max_tokens } = body;
+  const { agent, messages, system, max_tokens, stream } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages[] is required' });
   }
@@ -64,30 +51,71 @@ module.exports = async function handler(req, res) {
     || 'You are a helpful assistant for the ATLAS portfolio terminal.';
 
   const payload = {
-    model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+    model:      process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
     max_tokens: Number.isFinite(max_tokens) ? max_tokens : DEFAULT_MAX_TOKENS,
-    system: resolvedSystem,
+    system:     resolvedSystem,
     messages,
   };
 
+  applyCors(res);
+
+  // ── Streaming mode ──────────────────────────────────────────────────────────
+  if (stream) {
+    payload.stream = true;
+    let upstream;
+    try {
+      upstream = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type':      'application/json',
+          'x-api-key':         apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      return res.status(502).json({ error: 'Failed to reach Anthropic API', detail: err.message });
+    }
+
+    if (!upstream.ok) {
+      const errData = await upstream.json().catch(() => ({}));
+      return res.status(upstream.status).json(errData);
+    }
+
+    res.setHeader('Content-Type',      'text/event-stream');
+    res.setHeader('Cache-Control',     'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering
+
+    const reader  = upstream.body.getReader();
+    const decoder = new TextDecoder();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(decoder.decode(value, { stream: true }));
+      }
+    } finally {
+      res.end();
+    }
+    return;
+  }
+
+  // ── Non-streaming fallback ──────────────────────────────────────────────────
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
+        'content-type':      'application/json',
+        'x-api-key':         apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(payload),
     });
-
     const data = await upstream.json();
-    applyCors(res);
     return res.status(upstream.status).json(data);
   } catch (err) {
-    applyCors(res);
     return res.status(502).json({
-      error: 'Upstream Anthropic API request failed',
+      error:  'Upstream Anthropic API request failed',
       detail: err && err.message ? err.message : String(err),
     });
   }
@@ -96,7 +124,7 @@ module.exports = async function handler(req, res) {
 function applyCors(res) {
   const origin = process.env.ATLAS_ALLOWED_ORIGIN;
   if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Origin',  origin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'content-type');
   }

@@ -3,944 +3,1158 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ATLAS Command Centre</title>
+<title>ATLAS — Command Centre</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
+/* ── Reset & Base ──────────────────────────────────────────────────────────── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #070814;
-  --card: #0d0f1a;
-  --border: rgba(255,255,255,0.06);
-  --text-primary: rgba(255,255,255,0.92);
-  --text-secondary: rgba(255,255,255,0.52);
-  --text-muted: rgba(255,255,255,0.28);
-  --cyan: #00d4ff;
-  --violet: #8b5cf6;
-  --green: #10b981;
-  --amber: #f59e0b;
+  --bg:           #070814;
+  --sidebar-bg:   #04050f;
+  --surface:      #0d0f1d;
+  --surface-2:    #111328;
+  --border:       rgba(255,255,255,0.06);
+  --border-soft:  rgba(255,255,255,0.04);
+  --border-hover: rgba(255,255,255,0.10);
+
+  --text:         rgba(255,255,255,0.90);
+  --text-sec:     rgba(255,255,255,0.55);
+  --text-muted:   rgba(255,255,255,0.30);
+  --text-faint:   rgba(255,255,255,0.16);
+
+  --cyan:         #00d4ff;
+  --violet:       #8b5cf6;
+  --green:        #10b981;
+  --amber:        #f59e0b;
+  --red:          #ef4444;
+
+  --sidebar-w: 256px;
+  --header-h:  52px;
 }
 
-html, body {
-  height: 100%;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--text-primary);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-}
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
-body {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── Gradient top line ── */
-.gradient-line {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--cyan), var(--violet), var(--green), var(--amber));
-  z-index: 1000;
-}
-
-/* ── Scrollbar ── */
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 
-/* ── Topbar ── */
-.topbar {
-  display: flex;
-  align-items: center;
-  padding: 14px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
-  margin-top: 2px;
+/* ── Accent line ───────────────────────────────────────────────────────────── */
+.accent-line {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 100;
+  background: linear-gradient(90deg, var(--cyan), var(--violet), var(--green), var(--amber));
+}
+
+/* ── App shell ─────────────────────────────────────────────────────────────── */
+.app { display: flex; height: 100vh; padding-top: 2px; }
+
+/* ── Sidebar ───────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
   flex-shrink: 0;
-  gap: 16px;
-}
-
-.logo-group {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  transition: transform 0.22s ease, width 0.22s ease;
 }
+.sidebar.collapsed { width: 0; transform: translateX(-100%); }
 
-.logo-text {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--cyan);
-  letter-spacing: 3px;
+.sidebar-logo {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
 }
+.logo-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: 4px; color: var(--cyan); line-height: 1; }
+.logo-sub  { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 3px; color: var(--text-muted); margin-top: 4px; }
 
-.logo-subtitle {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-.topbar-sep {
-  width: 1px;
-  height: 20px;
-  background: var(--border);
-}
-
-.agents-status {
+.btn-new-chat {
+  margin: 12px 12px 6px;
+  padding: 9px 14px;
+  background: transparent;
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  color: var(--text-sec);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--green);
-  letter-spacing: 1px;
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-}
-
-.spacer { flex: 1; }
-
-.date {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: 1px;
-}
-
-/* ── Session Brief ── */
-.session-brief {
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   flex-shrink: 0;
 }
+.btn-new-chat:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.14); color: var(--text); }
+.btn-new-chat .new-icon { font-size: 16px; opacity: 0.7; }
 
-.brief-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 24px;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s;
-}
-
-.brief-header:hover {
-  background: rgba(255,255,255,0.02);
-}
-
-.brief-icon {
-  font-size: 14px;
-  color: var(--amber);
-}
-
-.brief-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--text-secondary);
-  letter-spacing: 2px;
-}
-
-.brief-badge {
+.agent-section-label {
+  padding: 10px 18px 4px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
-  letter-spacing: 1.5px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-weight: 600;
-}
-
-.brief-badge.apply {
-  background: rgba(245,158,11,0.12);
-  color: var(--amber);
-  border: 1px solid rgba(245,158,11,0.25);
-}
-
-.brief-badge.active {
-  background: rgba(16,185,129,0.12);
-  color: var(--green);
-  border: 1px solid rgba(16,185,129,0.25);
-}
-
-.brief-chevron {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-muted);
-  transition: transform 0.2s;
-}
-
-.brief-body {
-  display: none;
-  padding: 0 24px 14px 24px;
-}
-
-.brief-body.open {
-  display: block;
-}
-
-.brief-textarea {
-  width: 100%;
-  min-height: 72px;
-  max-height: 160px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  padding: 12px;
-  resize: vertical;
-  outline: none;
-  margin-bottom: 10px;
-  transition: border-color 0.2s;
-}
-
-.brief-textarea:focus {
-  border-color: rgba(245,158,11,0.35);
-}
-
-.brief-textarea::placeholder {
-  color: var(--text-muted);
-}
-
-.btn-apply {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  padding: 6px 18px;
-  border-radius: 6px;
-  border: 1px solid rgba(245,158,11,0.3);
-  background: rgba(245,158,11,0.08);
-  color: var(--amber);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.btn-apply:hover {
-  background: rgba(245,158,11,0.15);
-  border-color: rgba(245,158,11,0.5);
-}
-
-/* ── Agent Tabs ── */
-.agent-tabs {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  letter-spacing: 2px;
+  color: var(--text-faint);
   flex-shrink: 0;
-  overflow-x: auto;
 }
 
-.agent-tab {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 12px 20px;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
-  white-space: nowrap;
+.agent-nav { flex-shrink: 0; }
+
+.agent-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.agent-tab:hover {
-  color: var(--text-secondary);
-}
-
-.agent-tab.active {
-  color: var(--text-primary);
-}
-
-.agent-tab-icon {
-  font-size: 13px;
-}
-
-.tab-separator {
-  color: var(--text-muted);
-  font-size: 11px;
-  padding: 0 2px;
-  opacity: 0.3;
+  gap: 10px;
+  padding: 9px 12px 9px 14px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
   user-select: none;
 }
+.agent-item:hover { background: rgba(255,255,255,0.03); }
+.agent-item.active { border-left-color: var(--agent-color, var(--cyan)); background: rgba(255,255,255,0.03); }
 
-/* ── Agent Info ── */
-.agent-info {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 16px 24px 12px 24px;
-  gap: 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
-  flex-shrink: 0;
-  position: relative;
-}
+.agent-item-icon { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; color: var(--agent-color, var(--text-sec)); }
+.agent-item-name { font-size: 13px; font-weight: 500; color: var(--text-sec); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-item.active .agent-item-name { color: var(--text); }
 
-.agent-info-name {
-  font-family: 'Syne', sans-serif;
-  font-weight: 700;
-  font-size: 22px;
+.history-panel { flex: 1; overflow-y: auto; padding-bottom: 8px; min-height: 0; }
+
+.history-group-label {
+  padding: 12px 18px 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
   letter-spacing: 2px;
+  color: var(--text-faint);
 }
 
-.agent-info-tags {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-}
-
-.agent-info-tags span {
-  color: var(--text-secondary);
-}
-
-.agent-info-tags .dot {
-  color: var(--text-muted);
-  margin: 0 6px;
-}
-
-.btn-clear-chat {
-  position: absolute;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  color: var(--text-muted);
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 14px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-
-.btn-clear-chat:hover {
-  color: var(--text-secondary);
-  border-color: rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.03);
-}
-
-/* ── Chat Area ── */
-.chat-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
+.history-item {
   display: flex;
-  flex-direction: column;
-}
-
-/* Empty state */
-.chat-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 7px 10px 7px 14px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-left: 2px solid transparent;
 }
+.history-item:hover { background: rgba(255,255,255,0.03); }
+.history-item.active { border-left-color: var(--text-faint); background: rgba(255,255,255,0.025); }
 
-.empty-icon {
-  font-size: 64px;
+.history-item-text { flex: 1; font-size: 12.5px; color: var(--text-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+.history-item.active .history-item-text { color: var(--text); }
+
+.history-item-meta { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-faint); flex-shrink: 0; white-space: nowrap; }
+
+.history-item-del {
+  display: none;
+  background: none;
+  border: none;
   color: var(--text-muted);
-  opacity: 0.35;
-  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 3px;
+  transition: color 0.1s, background 0.1s;
 }
+.history-item:hover .history-item-del { display: flex; align-items: center; }
+.history-item-del:hover { color: var(--red); background: rgba(239,68,68,0.1); }
 
-.empty-text {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 3px;
-  color: var(--text-muted);
-}
+.sidebar-footer { border-top: 1px solid var(--border-soft); padding: 10px 12px; flex-shrink: 0; }
 
-/* Quick actions */
-.quick-actions {
+.btn-github-conn {
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 28px;
-  max-width: 640px;
-}
-
-.quick-chip {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  color: var(--text-secondary);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 8px 18px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.2s, background 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  text-align: left;
+}
+.btn-github-conn:hover { background: rgba(255,255,255,0.03); border-color: var(--border-hover); color: var(--text-sec); }
+.btn-github-conn.connected { border-color: rgba(16,185,129,0.25); color: var(--green); }
+.btn-github-conn.connected:hover { background: rgba(16,185,129,0.06); }
+
+.gh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; transition: background 0.2s; }
+.gh-dot.connected { background: var(--green); box-shadow: 0 0 5px var(--green); }
+
+/* ── Main area ─────────────────────────────────────────────────────────────── */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+
+.main-header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
-.quick-chip:hover {
-  color: var(--text-primary);
-  border-color: rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.03);
+.btn-sidebar-toggle {
+  background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer;
+  padding: 4px 6px; border-radius: 6px; line-height: 1; flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
 }
+.btn-sidebar-toggle:hover { color: var(--text-sec); background: rgba(255,255,255,0.04); }
 
-/* Messages */
-.msg {
-  max-width: 680px;
-  margin-bottom: 16px;
-  animation: msgIn 0.3s ease-out;
-}
+.header-agent { display: flex; align-items: baseline; gap: 12px; flex: 1; min-width: 0; }
+.header-agent-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 2px; color: var(--text); white-space: nowrap; }
+.header-agent-tags { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+.header-meta { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+
+.header-gh-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'JetBrains Mono', monospace; font-size: 9.5px;
+  color: var(--green); letter-spacing: 0.5px;
+  padding: 3px 8px; border: 1px solid rgba(16,185,129,0.2); border-radius: 4px;
+  background: rgba(16,185,129,0.06);
 }
+.header-gh-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+.header-date { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+
+/* ── Messages area ─────────────────────────────────────────────────────────── */
+.messages-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.messages-inner { max-width: 740px; margin: 0 auto; padding: 32px 24px 24px; display: flex; flex-direction: column; gap: 0; }
+
+/* ── Loading state ─────────────────────────────────────────────────────────── */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 55vh;
+  gap: 14px;
+  color: var(--text-muted);
+}
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border-hover);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 3px; color: var(--text-muted); }
+
+/* ── Empty state ───────────────────────────────────────────────────────────── */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 55vh; gap: 0; text-align: center; }
+.empty-glyph { font-size: 52px; margin-bottom: 18px; opacity: 0.22; line-height: 1; }
+.empty-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 3px; color: var(--text-sec); margin-bottom: 6px; }
+.empty-subtitle { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 32px; }
+.quick-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 580px; }
+.quick-chip { font-size: 13px; font-weight: 400; color: var(--text-sec); background: transparent; border: 1px solid var(--border); border-radius: 20px; padding: 8px 16px; cursor: pointer; transition: color 0.15s, border-color 0.18s, background 0.15s; line-height: 1.3; text-align: left; }
+.quick-chip:hover { color: var(--text); border-color: var(--border-hover); background: rgba(255,255,255,0.03); }
+
+/* ── Messages ──────────────────────────────────────────────────────────────── */
+.msg-row { display: flex; flex-direction: column; margin-bottom: 24px; }
+.msg-user-row { align-items: flex-end; }
 
 .msg-user {
-  align-self: flex-end;
-  background: rgba(0,212,255,0.08);
-  border: 1px solid rgba(0,212,255,0.15);
-  border-radius: 14px 14px 4px 14px;
-  padding: 10px 16px;
-  color: var(--text-primary);
-  font-size: 13.5px;
-  line-height: 1.55;
+  max-width: 68%; align-self: flex-end;
+  background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.13);
+  border-radius: 16px 16px 4px 16px; padding: 11px 16px;
+  font-size: 14px; line-height: 1.55; color: var(--text); word-break: break-word;
+  animation: fadeUp 0.2s ease-out;
 }
 
-.msg-assistant {
-  align-self: flex-start;
-  width: 100%;
-  max-width: 680px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px 14px 14px 4px;
-  padding: 12px 16px;
-  color: var(--text-primary);
-  font-size: 13.5px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+.msg-assistant-row { align-items: flex-start; }
+.msg-assistant { align-self: flex-start; width: 100%; animation: fadeUp 0.2s ease-out; }
 
-.msg-assistant.error {
-  border-color: rgba(239,68,68,0.3);
-  background: rgba(239,68,68,0.06);
-  color: #fca5a5;
+.msg-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 2px;
+  color: var(--text-muted); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 7px;
 }
+.msg-label-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--agent-color, var(--cyan)); flex-shrink: 0; }
 
-.msg-assistant-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-  text-transform: uppercase;
+.msg-body {
+  font-size: 14.5px; line-height: 1.72; color: var(--text); word-break: break-word;
+  border-left: 2px solid var(--agent-color, var(--cyan)); padding-left: 16px;
 }
+.msg-body.error { color: #fca5a5; border-left-color: var(--red); }
 
-.typing {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-}
-.typing span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  animation: typing 1.2s infinite ease-in-out;
-}
-.typing span:nth-child(2) { animation-delay: 0.15s; }
-.typing span:nth-child(3) { animation-delay: 0.3s; }
-@keyframes typing {
-  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
-  30% { opacity: 1; transform: translateY(-3px); }
-}
+.stream-cursor { display: inline; color: var(--text-muted); font-size: 0.85em; animation: blink 0.9s step-end infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── Input Area ── */
-.input-area {
-  padding: 12px 24px 18px 24px;
-  border-top: 1px solid var(--border);
-  background: var(--bg);
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-}
+/* ── Markdown ──────────────────────────────────────────────────────────────── */
+.msg-body p { margin-bottom: 0.85em; }
+.msg-body p:last-child { margin-bottom: 0; }
+.msg-body h1,.msg-body h2,.msg-body h3,.msg-body h4 { font-family: 'Syne', sans-serif; font-weight: 700; margin: 1.1em 0 0.5em; color: var(--text); letter-spacing: 0.5px; }
+.msg-body h1 { font-size: 18px; } .msg-body h2 { font-size: 16px; } .msg-body h3 { font-size: 14.5px; }
+.msg-body ul,.msg-body ol { padding-left: 1.4em; margin-bottom: 0.85em; }
+.msg-body li { margin-bottom: 0.3em; }
+.msg-body li:last-child { margin-bottom: 0; }
+.msg-body strong { font-weight: 600; color: rgba(255,255,255,0.95); }
+.msg-body em { font-style: italic; color: var(--text-sec); }
+.msg-body a { color: var(--cyan); text-decoration: none; }
+.msg-body a:hover { text-decoration: underline; }
+.msg-body blockquote { border-left: 3px solid var(--border-hover); margin: 0.8em 0; padding: 6px 14px; color: var(--text-sec); font-style: italic; }
+.msg-body hr { border: none; border-top: 1px solid var(--border); margin: 1.2em 0; }
+.msg-body table { border-collapse: collapse; width: 100%; margin-bottom: 0.85em; font-size: 13px; }
+.msg-body th,.msg-body td { padding: 7px 12px; border: 1px solid var(--border); text-align: left; }
+.msg-body th { background: var(--surface); color: var(--text-sec); font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; }
+.msg-body code:not(pre code) { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--cyan); }
+.msg-body pre { margin: 0.9em 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.msg-body pre code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; display: block; padding: 14px 16px; overflow-x: auto; background: var(--surface) !important; line-height: 1.6; }
+.hljs { background: var(--surface) !important; }
 
-.input-field {
-  flex: 1;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text-primary);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  padding: 12px 16px;
-  resize: none;
-  outline: none;
-  line-height: 1.5;
-  min-height: 44px;
-  max-height: 160px;
-  overflow-y: auto;
-  transition: border-color 0.2s;
-}
+/* ── Input wrap ────────────────────────────────────────────────────────────── */
+.input-wrap { flex-shrink: 0; padding: 8px 20px 16px; border-top: 1px solid var(--border); background: var(--bg); }
+.input-inner { max-width: 740px; margin: 0 auto; }
 
-.input-field:focus {
-  border-color: rgba(255,255,255,0.12);
-}
+.brief-bar { margin-bottom: 8px; }
+.brief-toggle { display: flex; align-items: center; gap: 8px; background: none; border: none; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; cursor: pointer; padding: 4px 0; transition: color 0.15s; }
+.brief-toggle:hover { color: var(--text-sec); }
+.brief-badge { font-size: 9px; letter-spacing: 1.5px; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-muted); }
+.brief-badge.active { border-color: rgba(245,158,11,0.3); color: var(--amber); background: rgba(245,158,11,0.07); }
+.brief-chevron { transition: transform 0.2s; font-size: 10px; }
+.brief-chevron.open { transform: rotate(180deg); }
+.brief-body { padding: 8px 0 4px; }
+.brief-textarea { width: 100%; min-height: 64px; max-height: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 10px 12px; resize: vertical; outline: none; margin-bottom: 8px; transition: border-color 0.18s; }
+.brief-textarea:focus { border-color: rgba(245,158,11,0.3); }
+.brief-textarea::placeholder { color: var(--text-muted); }
+.btn-apply-brief { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; padding: 5px 16px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.25); background: rgba(245,158,11,0.07); color: var(--amber); cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.btn-apply-brief:hover { background: rgba(245,158,11,0.13); border-color: rgba(245,158,11,0.4); }
 
-.input-field::placeholder {
-  color: var(--text-muted);
-}
+.input-box { display: flex; align-items: flex-end; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 10px 10px 16px; transition: border-color 0.18s; }
+.input-box:focus-within { border-color: rgba(255,255,255,0.12); }
+.input-field { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.55; resize: none; min-height: 24px; max-height: 180px; overflow-y: auto; }
+.input-field::placeholder { color: var(--text-muted); }
 
-.btn-send {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  flex-shrink: 0;
-}
+.btn-send { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: color 0.15s, border-color 0.15s, background 0.15s; line-height: 1; }
+.btn-send:hover { color: var(--text-sec); border-color: var(--border-hover); }
+.btn-send.ready { color: var(--cyan); border-color: rgba(0,212,255,0.3); }
+.btn-send.ready:hover { background: rgba(0,212,255,0.08); }
 
-.btn-send:hover {
-  color: var(--text-primary);
-  border-color: rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.04);
-}
+.input-hint { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-faint); letter-spacing: 0.5px; margin-top: 6px; text-align: center; }
 
-.btn-send.has-text {
-  color: var(--cyan);
-  border-color: rgba(0,212,255,0.3);
-}
+/* ── GitHub Modal ──────────────────────────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(4,5,15,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: var(--surface); border: 1px solid var(--border-hover); border-radius: 14px; width: 480px; max-width: calc(100vw - 32px); overflow: hidden; animation: slideUp 0.18s ease-out; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.modal-header { display: flex; align-items: center; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 2.5px; color: var(--text); flex: 1; }
+.btn-modal-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 4px; border-radius: 4px; transition: color 0.15s, background 0.15s; }
+.btn-modal-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.modal-body { padding: 20px; }
+.modal-desc { font-size: 13px; color: var(--text-sec); line-height: 1.6; margin-bottom: 18px; }
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 6px; }
+.form-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 9px 12px; outline: none; transition: border-color 0.18s; }
+.form-input:focus { border-color: rgba(0,212,255,0.3); }
+.form-input::placeholder { color: var(--text-muted); }
+.form-hint { display: block; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.modal-status { font-size: 12px; padding: 6px 0; min-height: 22px; }
+.modal-status.ok  { color: var(--green); }
+.modal-status.err { color: var(--red); }
+.modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+.btn-gh-action { flex: 1; padding: 9px 16px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.5px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.btn-gh-connect { background: rgba(0,212,255,0.09); border: 1px solid rgba(0,212,255,0.25); color: var(--cyan); }
+.btn-gh-connect:hover { background: rgba(0,212,255,0.15); }
+.btn-gh-disconnect { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+.btn-gh-disconnect:hover { background: rgba(239,68,68,0.13); }
+.gh-context-preview { margin-top: 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-sec); line-height: 1.6; max-height: 140px; overflow-y: auto; white-space: pre-wrap; }
 
-.btn-send.has-text:hover {
-  background: rgba(0,212,255,0.08);
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 680px) {
+  .sidebar { position: fixed; top: 2px; left: 0; bottom: 0; z-index: 50; transform: translateX(-100%); transition: transform 0.22s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .header-agent-tags { display: none; }
 }
 </style>
 </head>
 <body>
 
-<div class="gradient-line"></div>
+<div class="accent-line"></div>
 
-<header class="topbar">
-  <div class="logo-group">
-    <span class="logo-text">ATLAS</span>
-    <span class="logo-subtitle">COMMAND CENTRE</span>
-  </div>
-  <div class="topbar-sep"></div>
-  <div class="agents-status">
-    <span class="status-dot"></span>
-    4 AGENTS ONLINE
-  </div>
-  <div class="spacer"></div>
-  <div class="date" id="topDate"></div>
-</header>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-name">ATLAS</span>
+      <span class="logo-sub">COMMAND CENTRE</span>
+    </div>
+    <button class="btn-new-chat" id="btnNew"><span class="new-icon">＋</span> New Chat</button>
+    <div class="agent-section-label">AGENTS</div>
+    <nav class="agent-nav" id="agentNav"></nav>
+    <div class="history-panel" id="historyPanel"></div>
+    <div class="sidebar-footer">
+      <button class="btn-github-conn" id="btnGhConn">
+        <span class="gh-dot" id="ghDot"></span>
+        <span id="ghBtnLabel">Connect Repository</span>
+      </button>
+    </div>
+  </aside>
 
-<div class="session-brief">
-  <div class="brief-header" id="briefHeader">
-    <span class="brief-icon">&#9889;</span>
-    <span class="brief-label">SESSION BRIEF</span>
-    <span class="brief-badge apply" id="briefBadge">APPLY</span>
-    <span class="brief-chevron" id="briefChevron">&#9662;</span>
-  </div>
-  <div class="brief-body" id="briefBody">
-    <textarea class="brief-textarea" id="briefTextarea" placeholder="Paste session context here... This will be appended to every agent prompt."></textarea>
-    <button class="btn-apply" id="btnApply">APPLY BRIEF</button>
+  <div class="main">
+    <header class="main-header">
+      <button class="btn-sidebar-toggle" id="btnToggle" title="Toggle sidebar">☰</button>
+      <div class="header-agent">
+        <span class="header-agent-name" id="hAgentName"></span>
+        <span class="header-agent-tags" id="hAgentTags"></span>
+      </div>
+      <div class="header-meta">
+        <span id="hGhBadge"></span>
+        <span class="header-date" id="hDate"></span>
+      </div>
+    </header>
+
+    <div class="messages-scroll" id="msgScroll">
+      <div class="messages-inner" id="msgInner"></div>
+    </div>
+
+    <div class="input-wrap">
+      <div class="input-inner">
+        <div class="brief-bar">
+          <button class="brief-toggle" id="briefToggle">
+            <span>⚡ SESSION BRIEF</span>
+            <span class="brief-badge" id="briefBadge">NONE</span>
+            <span class="brief-chevron" id="briefChevron">▾</span>
+          </button>
+          <div class="brief-body" id="briefBody" style="display:none">
+            <textarea class="brief-textarea" id="briefTextarea" placeholder="Paste context that gets prepended to every agent prompt — repo state, current focus, open issues…"></textarea>
+            <button class="btn-apply-brief" id="btnApplyBrief">APPLY</button>
+          </div>
+        </div>
+        <div class="input-box">
+          <textarea class="input-field" id="inputField" rows="1" placeholder=""></textarea>
+          <button class="btn-send" id="btnSend">&#8594;</button>
+        </div>
+        <div class="input-hint">Shift+Enter for new line &middot; Enter to send</div>
+      </div>
+    </div>
   </div>
 </div>
 
-<nav class="agent-tabs" id="agentTabs"></nav>
-
-<div class="agent-info" id="agentInfo">
-  <div class="agent-info-name" id="agentName"></div>
-  <div class="agent-info-tags" id="agentTags"></div>
-  <button class="btn-clear-chat" id="btnClear">CLEAR CHAT</button>
-</div>
-
-<div class="chat-area" id="chatArea"></div>
-
-<div class="input-area">
-  <textarea class="input-field" id="inputField" placeholder="" rows="1"></textarea>
-  <button class="btn-send" id="btnSend">&#8594;</button>
+<!-- GitHub modal -->
+<div class="modal-overlay" id="ghModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">CONNECT REPOSITORY</span>
+      <button class="btn-modal-close" id="btnGhClose">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">Connect a GitHub repository so agents receive your codebase file tree, recent commits, and open issues as live context. Your token is stored in this browser only — it is never sent to our servers.</p>
+      <div class="form-group">
+        <label class="form-label">PERSONAL ACCESS TOKEN</label>
+        <input class="form-input" type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+        <span class="form-hint">Needs <code>repo</code> read scope (or <code>public_repo</code> for public repos)</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">REPOSITORY</label>
+        <input class="form-input" type="text" id="ghRepo" placeholder="owner/repo-name">
+      </div>
+      <div class="modal-status" id="ghStatus"></div>
+      <div class="modal-actions">
+        <button class="btn-gh-action btn-gh-connect" id="btnGhConnect">CONNECT</button>
+        <button class="btn-gh-action btn-gh-disconnect" id="btnGhDisconnect" style="display:none">DISCONNECT</button>
+      </div>
+      <div class="gh-context-preview" id="ghPreview" style="display:none"></div>
+    </div>
+  </div>
 </div>
 
 <script>
-/* ── Agent Data ── */
-const agents = [
+/* ═══════════════════════════════════════════════════════════════════════════
+   ATLAS Command Centre
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+marked.setOptions({ breaks: true, gfm: true });
+
+/* ── Agent definitions ─────────────────────────────────────────────────── */
+const AGENTS = [
   {
-    id: 'archivist',
-    name: 'THE ARCHIVIST',
-    icon: '\u25CE',
-    color: '#00d4ff',
+    id: 'archivist', name: 'THE ARCHIVIST', glyph: '◎', color: '#00d4ff',
     tags: ['State recall', 'Open issues', 'Version history', 'Project status'],
-    quickActions: [
-      'Where are we with ATLAS right now?',
-      'What bugs are currently open?',
-      'Give me a full project status report',
-      'What were we last working on?'
-    ],
     context: 'ATLAS is an investment analytics terminal built on Supabase + React. It tracks ~55 equity positions via Alpaca paper trading. Uses FIFO NAV methodology. Frontend is a single-file React SPA deployed on Vercel. Backend is PostgreSQL views in Supabase. Sync runs via GitHub Actions every 15 minutes.',
-    history: []
+    quickActions: ['Where are we with ATLAS right now?','What bugs are currently open?','Give me a full project status report','What were we last working on?'],
   },
   {
-    id: 'architect',
-    name: 'THE ARCHITECT',
-    icon: '\u2B21',
-    color: '#8b5cf6',
+    id: 'architect', name: 'THE ARCHITECT', glyph: '⬡', color: '#8b5cf6',
     tags: ['Schema design', 'SQL views', 'Data architecture', 'Migration strategy'],
-    quickActions: [
-      'Show me the current database schema',
-      'Which views need optimization?',
-      'Design a new view for X',
-      'Audit the FIFO NAV calculation'
-    ],
     context: 'ATLAS uses Supabase PostgreSQL with 5 base tables (portfolios, assets, positions, transactions, price_history) and 7 analytics views (vw_portfolio_home, vw_quant_dashboard, vw_risk_analysis, vw_performance_suite, vw_command_centre, vw_portfolio_nav_daily, vw_portfolio_returns_daily). All analytics computed in SQL, never frontend. FIFO NAV in vw_portfolio_nav_daily.',
-    history: []
+    quickActions: ['Show me the current database schema','Which views need optimization?','Design a new view for X','Audit the FIFO NAV calculation'],
   },
   {
-    id: 'engineer',
-    name: 'THE ENGINEER',
-    icon: '\u25C8',
-    color: '#10b981',
+    id: 'engineer', name: 'THE ENGINEER', glyph: '◈', color: '#10b981',
     tags: ['Implementation specs', 'Bug fixes', 'Code architecture', 'Deployment'],
-    quickActions: [
-      'Write a spec for the next feature',
-      'How should I fix this bug?',
-      'Review the sync pipeline architecture',
-      'Generate a deployment checklist'
-    ],
-    context: 'Repo: davenompozolo-blip/Latest-Atlas-Code. Frontend: public/index.html (React SPA via CDN). Sync: sync/run_sync.py (GitHub Actions). Services: services/. Legacy Streamlit: ui/pages/. Deploy: Vercel static site. Config: vercel.json, inject-env.js for key injection.',
-    history: []
+    context: 'Repo: davenompozolo-blip/Latest-Atlas-Code. Frontend: public/index.html (React SPA via CDN). Sync: sync/run_sync.py (GitHub Actions). Services: services/. Deploy: Vercel static site. Config: vercel.json, inject-env.js for key injection.',
+    quickActions: ['Write a spec for the next feature','How should I fix this bug?','Review the sync pipeline architecture','Generate a deployment checklist'],
   },
   {
-    id: 'strategist',
-    name: 'THE STRATEGIST',
-    icon: '\u25C6',
-    color: '#f59e0b',
+    id: 'strategist', name: 'THE STRATEGIST', glyph: '◆', color: '#f59e0b',
     tags: ['Product roadmap', 'Feature priority', 'Release planning', 'Commercial strategy'],
-    quickActions: [
-      'What should we build next?',
-      'Prioritize the current backlog',
-      'Create a release plan for v2',
-      'How do we monetize ATLAS?'
-    ],
     context: 'Current: React terminal on Vercel, Alpaca sync via GitHub Actions, Streamlit being retired. Done: FIFO NAV views, 7 analytics views, OCC options fix, Vercel deployment. Next: live data pipeline, scheduled sync stability, Streamlit retirement, real-time features.',
-    history: []
-  }
+    quickActions: ['What should we build next?','Prioritize the current backlog','Create a release plan for v2','How do we grow ATLAS?'],
+  },
 ];
 
-/* ── State ── */
-let activeAgentId = 'archivist';
-let sessionBrief = '';
-let briefOpen = false;
+/* ── Storage: local prefs (sync) + Supabase chats (async) ─────────────── */
+const LOCAL_KEY = 'atlas-cc-prefs';
 
-/* ── DOM refs ── */
-const $tabs = document.getElementById('agentTabs');
-const $agentName = document.getElementById('agentName');
-const $agentTags = document.getElementById('agentTags');
-const $chatArea = document.getElementById('chatArea');
-const $input = document.getElementById('inputField');
-const $btnSend = document.getElementById('btnSend');
-const $btnClear = document.getElementById('btnClear');
-const $briefHeader = document.getElementById('briefHeader');
-const $briefBody = document.getElementById('briefBody');
-const $briefBadge = document.getElementById('briefBadge');
+function loadLocalPrefs() {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || {}; } catch { return {}; }
+}
+function saveLocalPrefs() {
+  const { activeAgent, activeChat, brief, github, sidebarOpen } = state;
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ activeAgent, activeChat, brief, github, sidebarOpen })); } catch {}
+}
+
+const _prefs = loadLocalPrefs();
+const state = {
+  activeAgent:  _prefs.activeAgent  || 'archivist',
+  activeChat:   _prefs.activeChat   || {},
+  chats:        {},   // agentId → [{id, agentId, title, ts, messages}]
+                      //   messages = null  → not yet fetched from Supabase
+                      //   messages = []    → new/empty chat
+  brief:        _prefs.brief        || '',
+  github:       _prefs.github       || { token: '', repo: '', context: '' },
+  sidebarOpen:  _prefs.sidebarOpen  !== false,
+  booting:      true,
+};
+
+/* ── Supabase API helpers ───────────────────────────────────────────────── */
+const API = {
+  async allChats() {
+    const r = await fetch('/api/chats');
+    if (!r.ok) throw new Error(`chats API ${r.status}`);
+    return r.json();
+  },
+  async fetchMessages(id) {
+    const r = await fetch(`/api/chats?id=${encodeURIComponent(id)}`);
+    if (!r.ok) throw new Error(`chats API ${r.status}`);
+    const row = await r.json();
+    return row ? (row.messages || []) : [];
+  },
+  upsertChat(chat) {
+    return fetch('/api/chats', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: chat.id, agent_id: chat.agentId, title: chat.title || null, messages: chat.messages || [] }),
+    }).catch(() => {});
+  },
+  deleteChat(id) {
+    return fetch('/api/chats', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  },
+};
+
+/* ── Boot: load chats from Supabase ────────────────────────────────────── */
+async function boot() {
+  try {
+    const rows = await API.allChats();
+    if (Array.isArray(rows)) {
+      rows.forEach(row => {
+        const agentId = row.agent_id;
+        if (!state.chats[agentId]) state.chats[agentId] = [];
+        state.chats[agentId].push({
+          id:      row.id,
+          agentId: agentId,
+          title:   row.title,
+          ts:      new Date(row.updated_at).getTime(),
+          messages: null, // lazy — fetched when opened
+        });
+      });
+      // Sort each list newest first
+      Object.keys(state.chats).forEach(a => state.chats[a].sort((x, y) => y.ts - x.ts));
+    }
+  } catch {
+    // Supabase unavailable — fall back to empty history
+  }
+  state.booting = false;
+  renderAll();
+  $inputField.focus();
+}
+
+/* ── DOM refs ───────────────────────────────────────────────────────────── */
+const $sidebar      = document.getElementById('sidebar');
+const $agentNav     = document.getElementById('agentNav');
+const $historyPanel = document.getElementById('historyPanel');
+const $msgScroll    = document.getElementById('msgScroll');
+const $msgInner     = document.getElementById('msgInner');
+const $inputField   = document.getElementById('inputField');
+const $btnSend      = document.getElementById('btnSend');
+const $btnNew       = document.getElementById('btnNew');
+const $btnToggle    = document.getElementById('btnToggle');
+const $hAgentName   = document.getElementById('hAgentName');
+const $hAgentTags   = document.getElementById('hAgentTags');
+const $hGhBadge     = document.getElementById('hGhBadge');
+const $hDate        = document.getElementById('hDate');
+const $briefToggle  = document.getElementById('briefToggle');
+const $briefBadge   = document.getElementById('briefBadge');
 const $briefChevron = document.getElementById('briefChevron');
-const $briefTextarea = document.getElementById('briefTextarea');
-const $btnApply = document.getElementById('btnApply');
-const $topDate = document.getElementById('topDate');
+const $briefBody    = document.getElementById('briefBody');
+const $briefTA      = document.getElementById('briefTextarea');
+const $btnApplyBrief= document.getElementById('btnApplyBrief');
+const $btnGhConn    = document.getElementById('btnGhConn');
+const $ghDot        = document.getElementById('ghDot');
+const $ghBtnLabel   = document.getElementById('ghBtnLabel');
+const $ghModal      = document.getElementById('ghModal');
+const $btnGhClose   = document.getElementById('btnGhClose');
+const $ghToken      = document.getElementById('ghToken');
+const $ghRepo       = document.getElementById('ghRepo');
+const $ghStatus     = document.getElementById('ghStatus');
+const $btnGhConnect    = document.getElementById('btnGhConnect');
+const $btnGhDisconnect = document.getElementById('btnGhDisconnect');
+const $ghPreview    = document.getElementById('ghPreview');
 
-/* ── Date ── */
-function formatDate() {
+/* ── Helpers ────────────────────────────────────────────────────────────── */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function fmtDate(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000)     return 'just now';
+  if (diff < 3600000)   return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000)  return Math.floor(diff / 3600000) + 'h ago';
+  if (diff < 172800000) return 'Yesterday';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+function groupLabel(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 86400000)  return 'Today';
+  if (diff < 172800000) return 'Yesterday';
+  if (diff < 604800000) return 'Last 7 days';
+  return 'Older';
+}
+
+function agentById(id) { return AGENTS.find(a => a.id === id); }
+function getChats(agentId) { return state.chats[agentId] || []; }
+
+function getActiveChat(agentId) {
+  const id  = state.activeChat[agentId];
+  const arr = state.chats[agentId] || [];
+  return id ? arr.find(c => c.id === id) || null : null;
+}
+
+function newChat(agentId) {
+  const chat = { id: uid(), agentId, title: null, ts: Date.now(), messages: [] };
+  if (!state.chats[agentId]) state.chats[agentId] = [];
+  state.chats[agentId].unshift(chat);
+  state.activeChat[agentId] = chat.id;
+  saveLocalPrefs();
+  return chat;
+}
+
+function deleteChat(agentId, chatId) {
+  state.chats[agentId] = (state.chats[agentId] || []).filter(c => c.id !== chatId);
+  if (state.activeChat[agentId] === chatId) {
+    const remaining = state.chats[agentId];
+    state.activeChat[agentId] = remaining.length ? remaining[0].id : null;
+  }
+  saveLocalPrefs();
+  API.deleteChat(chatId);
+}
+
+function renderMarkdown(text) { return marked.parse(text || ''); }
+function highlightCode(el) { el.querySelectorAll('pre code').forEach(b => { if (!b.dataset.highlighted) hljs.highlightElement(b); }); }
+
+function scrollToBottom(force = false) {
+  if (force || $msgScroll.scrollHeight - $msgScroll.scrollTop - $msgScroll.clientHeight < 120) {
+    $msgScroll.scrollTop = $msgScroll.scrollHeight;
+  }
+}
+
+function autoResize() {
+  $inputField.style.height = 'auto';
+  $inputField.style.height = Math.min($inputField.scrollHeight, 180) + 'px';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Date ───────────────────────────────────────────────────────────────── */
+(function() {
   const d = new Date();
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
-}
-$topDate.textContent = formatDate();
+  $hDate.textContent = `${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
+})();
 
-/* ── Render Tabs ── */
-function renderTabs() {
-  $tabs.innerHTML = '';
-  agents.forEach((agent, i) => {
-    if (i > 0) {
-      const sep = document.createElement('span');
-      sep.className = 'tab-separator';
-      sep.textContent = '|';
-      $tabs.appendChild(sep);
-    }
-    const btn = document.createElement('button');
-    btn.className = 'agent-tab' + (agent.id === activeAgentId ? ' active' : '');
-    btn.innerHTML = `<span class="agent-tab-icon">${agent.icon}</span>${agent.name}`;
-    if (agent.id === activeAgentId) {
-      btn.style.borderBottomColor = agent.color;
-      btn.style.color = 'var(--text-primary)';
-    }
-    btn.addEventListener('click', () => switchAgent(agent.id));
-    $tabs.appendChild(btn);
+/* ── GitHub badge ───────────────────────────────────────────────────────── */
+function renderGhBadge() {
+  const connected = !!(state.github.repo && state.github.context);
+  $hGhBadge.innerHTML = connected
+    ? `<span class="header-gh-badge"><span class="dot"></span>${state.github.repo}</span>`
+    : '';
+  $ghDot.classList.toggle('connected', connected);
+  $btnGhConn.classList.toggle('connected', connected);
+  $ghBtnLabel.textContent = connected ? state.github.repo : 'Connect Repository';
+}
+
+/* ── System prompt ──────────────────────────────────────────────────────── */
+function buildSystem(agent) {
+  let sys = `You are ${agent.name}, a specialist in ${agent.tags.join(', ')} for the ATLAS investment analytics terminal.\n\nContext:\n${agent.context}`;
+  if (state.github.context) sys += `\n\n## CONNECTED REPOSITORY: ${state.github.repo}\n${state.github.context}`;
+  if (state.brief.trim())   sys += `\n\n## SESSION BRIEF\n${state.brief}`;
+  sys += '\n\nRespond with detailed, comprehensive, actionable answers using clear markdown formatting. Complete your full response without truncating — do not stop mid-explanation. Cite files, tables, or views by name when relevant.';
+  return sys;
+}
+
+/* ── Render sidebar ─────────────────────────────────────────────────────── */
+function renderAgentNav() {
+  $agentNav.innerHTML = '';
+  AGENTS.forEach(agent => {
+    const el = document.createElement('div');
+    el.className = 'agent-item' + (agent.id === state.activeAgent ? ' active' : '');
+    el.style.setProperty('--agent-color', agent.color);
+    el.innerHTML = `<span class="agent-item-icon">${agent.glyph}</span><span class="agent-item-name">${agent.name}</span>`;
+    el.addEventListener('click', () => switchAgent(agent.id));
+    $agentNav.appendChild(el);
   });
 }
 
-/* ── Switch Agent ── */
-function switchAgent(id) {
-  activeAgentId = id;
-  renderTabs();
-  renderAgentInfo();
-  renderChat();
-  updateInputPlaceholder();
-}
+function renderHistory() {
+  $historyPanel.innerHTML = '';
+  const chats = getChats(state.activeAgent);
+  if (!chats.length) return;
 
-/* ── Agent Info ── */
-function renderAgentInfo() {
-  const agent = agents.find(a => a.id === activeAgentId);
-  $agentName.textContent = agent.name;
-  $agentName.style.color = agent.color;
+  const groups = {};
+  chats.forEach(c => { const g = groupLabel(c.ts); if (!groups[g]) groups[g] = []; groups[g].push(c); });
 
-  $agentTags.innerHTML = agent.tags.map((t, i) =>
-    `<span>${t}</span>${i < agent.tags.length - 1 ? '<span class="dot">&middot;</span>' : ''}`
-  ).join('');
-}
-
-/* ── Input Placeholder ── */
-function updateInputPlaceholder() {
-  const agent = agents.find(a => a.id === activeAgentId);
-  const label = agent.name.replace('THE ', '').toLowerCase();
-  $input.placeholder = `Message the ${label}...`;
-}
-
-/* ── Render Chat ── */
-function renderChat() {
-  const agent = agents.find(a => a.id === activeAgentId);
-  $chatArea.innerHTML = '';
-
-  if (agent.history.length === 0) {
-    /* Empty state */
-    const empty = document.createElement('div');
-    empty.className = 'chat-empty';
-    empty.innerHTML = `
-      <div class="empty-icon">${agent.icon}</div>
-      <div class="empty-text">${agent.name} STANDING BY</div>
-      <div class="quick-actions" id="quickActions"></div>
-    `;
-    $chatArea.appendChild(empty);
-
-    const qa = empty.querySelector('#quickActions');
-    agent.quickActions.forEach(text => {
-      const chip = document.createElement('button');
-      chip.className = 'quick-chip';
-      chip.textContent = text;
-      chip.addEventListener('click', () => {
-        $input.value = text;
-        autoResize();
-        sendMessage();
-      });
-      qa.appendChild(chip);
-    });
-  } else {
-    agent.history.forEach(msg => {
-      appendMessageDOM(msg);
-    });
-    scrollToBottom();
-  }
-}
-
-/* ── Append Message ── */
-function appendMessageDOM(msg) {
-  if (msg.role === 'user') {
-    const div = document.createElement('div');
-    div.className = 'msg msg-user';
-    div.textContent = msg.content;
-    $chatArea.appendChild(div);
-  } else if (msg.role === 'assistant') {
-    const div = document.createElement('div');
-    div.className = 'msg msg-assistant' + (msg.error ? ' error' : '');
+  ['Today','Yesterday','Last 7 days','Older'].forEach(g => {
+    if (!groups[g]) return;
     const label = document.createElement('div');
-    label.className = 'msg-assistant-label';
-    const agent = agents.find(a => a.id === activeAgentId);
-    label.textContent = msg.error ? 'ERROR' : agent.name;
-    const body = document.createElement('div');
-    body.textContent = msg.content;
-    div.appendChild(label);
-    div.appendChild(body);
-    $chatArea.appendChild(div);
-  }
+    label.className = 'history-group-label';
+    label.textContent = g;
+    $historyPanel.appendChild(label);
+
+    groups[g].forEach(chat => {
+      const el = document.createElement('div');
+      const isActive = state.activeChat[state.activeAgent] === chat.id;
+      el.className = 'history-item' + (isActive ? ' active' : '');
+      el.innerHTML = `
+        <span class="history-item-text">${escHtml(chat.title || 'New chat')}</span>
+        <span class="history-item-meta">${fmtDate(chat.ts)}</span>
+        <button class="history-item-del" title="Delete">&#215;</button>
+      `;
+      el.querySelector('.history-item-del').addEventListener('click', e => {
+        e.stopPropagation();
+        deleteChat(state.activeAgent, chat.id);
+        renderAll();
+      });
+      el.addEventListener('click', () => openChat(state.activeAgent, chat.id));
+      $historyPanel.appendChild(el);
+    });
+  });
 }
 
-/* ── Build System Prompt ── */
-function buildSystem(agent) {
-  let system = `You are ${agent.name}, a specialist in ${agent.tags.join(', ')} for the ATLAS investment analytics terminal.\n\nContext:\n${agent.context}`;
-  if (sessionBrief.trim()) {
-    system += '\n\nSESSION BRIEF:\n' + sessionBrief;
-  }
-  system += '\n\nRespond with detailed, actionable answers. Cite files, tables, or views by name when relevant.';
-  return system;
+/* ── Render header ──────────────────────────────────────────────────────── */
+function renderHeader() {
+  const agent = agentById(state.activeAgent);
+  $hAgentName.textContent = agent.name;
+  $hAgentName.style.color = agent.color;
+  $hAgentTags.textContent = agent.tags.join(' · ');
+  $inputField.placeholder = `Message the ${agent.name.replace('THE ', '').toLowerCase()}…`;
+  renderGhBadge();
 }
 
-/* ── Send Message ── */
+/* ── Render messages ────────────────────────────────────────────────────── */
+function showLoading() {
+  $msgInner.innerHTML = '<div class="loading-state"><div class="spinner"></div><div class="loading-label">LOADING HISTORY</div></div>';
+}
+
+function renderMessages(chat) {
+  const agent = agentById(state.activeAgent);
+  $msgInner.innerHTML = '';
+
+  if (!chat || chat.messages === null) {
+    showLoading();
+    return;
+  }
+
+  if (chat.messages.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = `
+      <div class="empty-glyph">${agent.glyph}</div>
+      <div class="empty-title">${agent.name}</div>
+      <div class="empty-subtitle">STANDING BY</div>
+      <div class="quick-chips"></div>
+    `;
+    const chips = empty.querySelector('.quick-chips');
+    agent.quickActions.forEach(txt => {
+      const btn = document.createElement('button');
+      btn.className = 'quick-chip';
+      btn.textContent = txt;
+      btn.addEventListener('click', () => { $inputField.value = txt; autoResize(); sendMessage(); });
+      chips.appendChild(btn);
+    });
+    $msgInner.appendChild(empty);
+    return;
+  }
+
+  chat.messages.forEach(msg => appendMessageDOM(msg, agent));
+  scrollToBottom(true);
+}
+
+function appendMessageDOM(msg, agent) {
+  if (!agent) agent = agentById(state.activeAgent);
+  const row = document.createElement('div');
+
+  if (msg.role === 'user') {
+    row.className = 'msg-row msg-user-row';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-user';
+    bubble.textContent = msg.content;
+    row.appendChild(bubble);
+  } else {
+    row.className = 'msg-row msg-assistant-row';
+    row.innerHTML = `
+      <div class="msg-assistant">
+        <div class="msg-label" style="--agent-color:${agent.color}">
+          <span class="msg-label-dot"></span>${agent.name}
+        </div>
+        <div class="msg-body${msg.error ? ' error' : ''}" style="--agent-color:${agent.color}"></div>
+      </div>
+    `;
+    const body = row.querySelector('.msg-body');
+    body.innerHTML = renderMarkdown(msg.content);
+    highlightCode(body);
+  }
+  $msgInner.appendChild(row);
+  return row;
+}
+
+/* ── Open a specific chat (lazy-load messages if needed) ────────────────── */
+async function openChat(agentId, chatId) {
+  state.activeChat[agentId] = chatId;
+  saveLocalPrefs();
+
+  const chat = getActiveChat(agentId);
+  if (!chat) { renderAll(); return; }
+
+  if (chat.messages === null) {
+    renderAgentNav();
+    renderHistory();
+    renderHeader();
+    showLoading();
+    try {
+      chat.messages = await API.fetchMessages(chatId);
+    } catch {
+      chat.messages = [];
+    }
+  }
+  renderAll();
+}
+
+/* ── Send message with streaming ────────────────────────────────────────── */
 let inflight = false;
+
 async function sendMessage() {
   if (inflight) return;
-  const text = $input.value.trim();
+  const text = $inputField.value.trim();
   if (!text) return;
 
-  const agent = agents.find(a => a.id === activeAgentId);
+  const agent = agentById(state.activeAgent);
 
-  /* Push user message into history (Anthropic-shaped) */
-  agent.history.push({ role: 'user', content: text });
+  // Ensure active chat exists (and messages are loaded)
+  let chat = getActiveChat(state.activeAgent);
+  if (!chat) {
+    chat = newChat(state.activeAgent);
+  } else if (chat.messages === null) {
+    // Edge case: clicked a history item but messages not loaded yet
+    try { chat.messages = await API.fetchMessages(chat.id); } catch { chat.messages = []; }
+  }
 
-  /* Clear input */
-  $input.value = '';
+  // Auto-title from first user message
+  if (!chat.title) {
+    chat.title = text.length > 52 ? text.slice(0, 52) + '…' : text;
+    saveLocalPrefs();
+  }
+
+  chat.messages.push({ role: 'user', content: text });
+
+  $inputField.value = '';
   autoResize();
-  updateSendButton();
+  updateSendBtn();
 
-  /* Render user message + typing indicator */
-  renderChat();
-  const typingEl = document.createElement('div');
-  typingEl.className = 'msg msg-assistant';
-  typingEl.innerHTML = `<div class="msg-assistant-label">${agent.name}</div><div class="typing"><span></span><span></span><span></span></div>`;
-  $chatArea.appendChild(typingEl);
-  scrollToBottom();
+  renderMessages(chat);
+  renderHistory();
+
+  // Create streaming assistant row
+  const row = document.createElement('div');
+  row.className = 'msg-row msg-assistant-row';
+  row.innerHTML = `
+    <div class="msg-assistant">
+      <div class="msg-label" style="--agent-color:${agent.color}">
+        <span class="msg-label-dot"></span>${agent.name}
+      </div>
+      <div class="msg-body" style="--agent-color:${agent.color}"><span class="stream-cursor">▌</span></div>
+    </div>
+  `;
+  $msgInner.appendChild(row);
+  scrollToBottom(true);
+
+  const $body = row.querySelector('.msg-body');
+  const anthropicMessages = chat.messages.map(m => ({ role: m.role, content: m.content }));
 
   inflight = true;
+  let accumulated = '';
+
   try {
     const resp = await fetch('/api/command-centre', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        agent: agent.id,
-        system: buildSystem(agent),
-        messages: agent.history.map(m => ({ role: m.role, content: m.content })),
-        max_tokens: 2048,
+        agent:      agent.id,
+        system:     buildSystem(agent),
+        messages:   anthropicMessages,
+        max_tokens: 16000,
+        stream:     true,
       }),
     });
 
-    const data = await resp.json();
-    typingEl.remove();
-
     if (!resp.ok) {
-      const errMsg = (data && (data.error || data.detail)) || `HTTP ${resp.status}`;
-      agent.history.push({ role: 'assistant', content: String(errMsg), error: true });
-    } else {
-      const assistantText = Array.isArray(data.content)
-        ? data.content.filter(b => b.type === 'text').map(b => b.text).join('\n\n')
-        : (data.completion || '[empty response]');
-      agent.history.push({ role: 'assistant', content: assistantText });
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${resp.status}`);
     }
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (!raw || raw === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(raw);
+          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+            accumulated += evt.delta.text;
+            $body.innerHTML = renderMarkdown(accumulated) + '<span class="stream-cursor">▌</span>';
+            highlightCode($body);
+            scrollToBottom();
+          }
+        } catch { /* malformed chunk */ }
+      }
+    }
+
+    $body.innerHTML = renderMarkdown(accumulated);
+    highlightCode($body);
+    chat.messages.push({ role: 'assistant', content: accumulated });
+
   } catch (err) {
-    typingEl.remove();
-    agent.history.push({
-      role: 'assistant',
-      content: 'Network error: ' + (err && err.message ? err.message : String(err)),
-      error: true,
-    });
+    const errText = err && err.message ? err.message : String(err);
+    $body.classList.add('error');
+    $body.innerHTML = renderMarkdown(`**Error:** ${errText}`);
+    chat.messages.push({ role: 'assistant', content: errText, error: true });
   } finally {
     inflight = false;
-    renderChat();
+    chat.ts = Date.now();
+    scrollToBottom(true);
+    renderHistory();
+    // Sync to Supabase (fire and forget)
+    API.upsertChat(chat);
   }
 }
 
-/* ── Scroll ── */
-function scrollToBottom() {
-  requestAnimationFrame(() => {
-    $chatArea.scrollTop = $chatArea.scrollHeight;
-  });
+/* ── Agent switch ───────────────────────────────────────────────────────── */
+function switchAgent(id) {
+  state.activeAgent = id;
+  saveLocalPrefs();
+  const chat = getActiveChat(id);
+  if (chat && chat.messages === null) {
+    renderAgentNav();
+    renderHistory();
+    renderHeader();
+    showLoading();
+    API.fetchMessages(chat.id).then(msgs => {
+      chat.messages = msgs;
+      renderAll();
+    }).catch(() => { chat.messages = []; renderAll(); });
+    return;
+  }
+  renderAll();
 }
 
-/* ── Auto-resize textarea ── */
-function autoResize() {
-  $input.style.height = 'auto';
-  $input.style.height = Math.min($input.scrollHeight, 160) + 'px';
+/* ── Full re-render ─────────────────────────────────────────────────────── */
+function renderAll() {
+  if (state.booting) {
+    $msgInner.innerHTML = '<div class="loading-state"><div class="spinner"></div><div class="loading-label">CONNECTING</div></div>';
+    renderAgentNav();
+    renderHeader();
+    applySidebarState();
+    return;
+  }
+  renderAgentNav();
+  renderHistory();
+  renderHeader();
+  renderMessages(getActiveChat(state.activeAgent));
+  applySidebarState();
 }
 
-/* ── Send button state ── */
-function updateSendButton() {
-  if ($input.value.trim()) {
-    $btnSend.classList.add('has-text');
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+function applySidebarState() {
+  if (window.innerWidth <= 680) {
+    $sidebar.classList.toggle('open', state.sidebarOpen);
   } else {
-    $btnSend.classList.remove('has-text');
+    $sidebar.classList.toggle('collapsed', !state.sidebarOpen);
   }
 }
 
-/* ── Event Listeners ── */
+function updateSendBtn() {
+  $btnSend.classList.toggle('ready', $inputField.value.trim().length > 0);
+}
 
-/* Input */
-$input.addEventListener('input', () => {
-  autoResize();
-  updateSendButton();
-});
+/* ── GitHub connect ─────────────────────────────────────────────────────── */
+function openGhModal() {
+  $ghToken.value = state.github.token || '';
+  $ghRepo.value  = state.github.repo  || '';
+  $ghStatus.textContent = '';
+  $ghStatus.className   = 'modal-status';
+  updateGhModalUI();
+  $ghModal.style.display = 'flex';
+}
+function closeGhModal() { $ghModal.style.display = 'none'; }
 
-$input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+function updateGhModalUI() {
+  const connected = !!(state.github.repo && state.github.context);
+  $btnGhDisconnect.style.display = connected ? '' : 'none';
+  if (connected) {
+    $ghPreview.style.display = '';
+    $ghPreview.textContent   = state.github.context.slice(0, 600) + (state.github.context.length > 600 ? '\n…' : '');
+  } else {
+    $ghPreview.style.display = 'none';
   }
+}
+
+async function connectGitHub() {
+  const token = $ghToken.value.trim();
+  const repo  = $ghRepo.value.trim();
+  if (!token || !repo || !repo.includes('/')) { setGhStatus('Enter a valid token and repository (owner/repo)', 'err'); return; }
+
+  setGhStatus('Connecting…', '');
+  $btnGhConnect.disabled = true;
+  try {
+    const headers = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' };
+    const base = `https://api.github.com/repos/${repo}`;
+    const [repoRes, commitsRes, issuesRes, treeRes] = await Promise.all([
+      fetch(base, { headers }),
+      fetch(`${base}/commits?per_page=8`, { headers }),
+      fetch(`${base}/issues?state=open&per_page=10`, { headers }),
+      fetch(`${base}/git/trees/HEAD?recursive=false`, { headers }),
+    ]);
+    if (!repoRes.ok) throw new Error(`Repo not found or token lacks access (HTTP ${repoRes.status})`);
+
+    const [repoData, commits, issues, tree] = await Promise.all([repoRes.json(), commitsRes.json(), issuesRes.json(), treeRes.json()]);
+
+    let ctx = `Repository: ${repoData.full_name}\n`;
+    if (repoData.description) ctx += `Description: ${repoData.description}\n`;
+    ctx += `Default branch: ${repoData.default_branch} · Stars: ${repoData.stargazers_count}\n`;
+
+    if (Array.isArray(tree.tree)) {
+      const files = tree.tree.filter(f => f.type === 'blob' || f.type === 'tree').map(f => f.type === 'tree' ? `📁 ${f.path}/` : `  ${f.path}`).slice(0, 60);
+      if (files.length) ctx += `\nRoot file tree:\n${files.join('\n')}`;
+    }
+    if (Array.isArray(commits) && commits.length) {
+      ctx += `\n\nRecent commits:\n`;
+      commits.slice(0, 8).forEach(c => { ctx += `  ${(c.sha||'').slice(0,7)} ${(c.commit?.message||'').split('\n')[0]}\n`; });
+    }
+    if (Array.isArray(issues) && issues.length) {
+      ctx += `\nOpen issues (${issues.length}):\n`;
+      issues.slice(0, 10).forEach(i => { ctx += `  #${i.number} ${i.title}\n`; });
+    }
+
+    state.github = { token, repo, context: ctx };
+    saveLocalPrefs();
+    setGhStatus(`✓ Connected to ${repo}`, 'ok');
+    updateGhModalUI();
+    renderGhBadge();
+  } catch (err) {
+    setGhStatus(err.message || 'Connection failed', 'err');
+  } finally {
+    $btnGhConnect.disabled = false;
+  }
+}
+
+function disconnectGitHub() {
+  state.github = { token: '', repo: '', context: '' };
+  saveLocalPrefs();
+  $ghStatus.textContent = '';
+  updateGhModalUI();
+  renderGhBadge();
+}
+
+function setGhStatus(msg, type) {
+  $ghStatus.textContent = msg;
+  $ghStatus.className   = 'modal-status' + (type ? ' ' + type : '');
+}
+
+/* ── Events ─────────────────────────────────────────────────────────────── */
+$btnNew.addEventListener('click', () => {
+  newChat(state.activeAgent);
+  renderAll();
+  $inputField.focus();
 });
 
+$btnToggle.addEventListener('click', () => {
+  state.sidebarOpen = !state.sidebarOpen;
+  saveLocalPrefs();
+  applySidebarState();
+});
+
+$inputField.addEventListener('input', () => { autoResize(); updateSendBtn(); });
+$inputField.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 $btnSend.addEventListener('click', sendMessage);
 
-/* Clear chat */
-$btnClear.addEventListener('click', () => {
-  const agent = agents.find(a => a.id === activeAgentId);
-  agent.history = [];
-  renderChat();
+$briefToggle.addEventListener('click', () => {
+  const open = $briefBody.style.display === 'none';
+  $briefBody.style.display = open ? '' : 'none';
+  $briefChevron.classList.toggle('open', open);
 });
-
-/* Session Brief toggle */
-$briefHeader.addEventListener('click', () => {
-  briefOpen = !briefOpen;
-  if (briefOpen) {
-    $briefBody.classList.add('open');
-    $briefChevron.innerHTML = '&#9652;';
-  } else {
-    $briefBody.classList.remove('open');
-    $briefChevron.innerHTML = '&#9662;';
-  }
+$btnApplyBrief.addEventListener('click', () => {
+  state.brief = $briefTA.value.trim();
+  saveLocalPrefs();
+  $briefBadge.textContent = state.brief ? 'ACTIVE' : 'NONE';
+  $briefBadge.classList.toggle('active', !!state.brief);
 });
+if (state.brief) { $briefTA.value = state.brief; $briefBadge.textContent = 'ACTIVE'; $briefBadge.classList.add('active'); }
 
-/* Apply brief */
-$btnApply.addEventListener('click', () => {
-  sessionBrief = $briefTextarea.value.trim();
-  if (sessionBrief) {
-    $briefBadge.textContent = 'ACTIVE';
-    $briefBadge.className = 'brief-badge active';
-  } else {
-    $briefBadge.textContent = 'APPLY';
-    $briefBadge.className = 'brief-badge apply';
-  }
-});
+$btnGhConn.addEventListener('click', openGhModal);
+$btnGhClose.addEventListener('click', closeGhModal);
+$ghModal.addEventListener('click', e => { if (e.target === $ghModal) closeGhModal(); });
+$btnGhConnect.addEventListener('click', connectGitHub);
+$btnGhDisconnect.addEventListener('click', disconnectGitHub);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGhModal(); });
+window.addEventListener('resize', applySidebarState);
 
-/* ── Init ── */
-renderTabs();
-renderAgentInfo();
-renderChat();
-updateInputPlaceholder();
+/* ── Boot ───────────────────────────────────────────────────────────────── */
+renderAll(); // show loading spinner immediately
+boot();      // then fetch from Supabase
 </script>
 </body>
 </html>
