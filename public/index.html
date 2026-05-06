@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATLAS Command Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #070814;
+  --card: #0d0f1a;
+  --border: rgba(255,255,255,0.06);
+  --text-primary: rgba(255,255,255,0.92);
+  --text-secondary: rgba(255,255,255,0.52);
+  --text-muted: rgba(255,255,255,0.28);
+  --cyan: #00d4ff;
+  --violet: #8b5cf6;
+  --green: #10b981;
+  --amber: #f59e0b;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Gradient top line ── */
+.gradient-line {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet), var(--green), var(--amber));
+  z-index: 1000;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* ── Topbar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  margin-top: 2px;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.logo-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.logo-text {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--cyan);
+  letter-spacing: 3px;
+}
+
+.logo-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.topbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.agents-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 1px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+.spacer { flex: 1; }
+
+.date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* ── Session Brief ── */
+.session-brief {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.brief-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.brief-header:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.brief-icon {
+  font-size: 14px;
+  color: var(--amber);
+}
+
+.brief-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+
+.brief-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.brief-badge.apply {
+  background: rgba(245,158,11,0.12);
+  color: var(--amber);
+  border: 1px solid rgba(245,158,11,0.25);
+}
+
+.brief-badge.active {
+  background: rgba(16,185,129,0.12);
+  color: var(--green);
+  border: 1px solid rgba(16,185,129,0.25);
+}
+
+.brief-chevron {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.brief-body {
+  display: none;
+  padding: 0 24px 14px 24px;
+}
+
+.brief-body.open {
+  display: block;
+}
+
+.brief-textarea {
+  width: 100%;
+  min-height: 72px;
+  max-height: 160px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 12px;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+
+.brief-textarea:focus {
+  border-color: rgba(245,158,11,0.35);
+}
+
+.brief-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-apply {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  padding: 6px 18px;
+  border-radius: 6px;
+  border: 1px solid rgba(245,158,11,0.3);
+  background: rgba(245,158,11,0.08);
+  color: var(--amber);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-apply:hover {
+  background: rgba(245,158,11,0.15);
+  border-color: rgba(245,158,11,0.5);
+}
+
+/* ── Agent Tabs ── */
+.agent-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.agent-tab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-tab:hover {
+  color: var(--text-secondary);
+}
+
+.agent-tab.active {
+  color: var(--text-primary);
+}
+
+.agent-tab-icon {
+  font-size: 13px;
+}
+
+.tab-separator {
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 0 2px;
+  opacity: 0.3;
+  user-select: none;
+}
+
+/* ── Agent Info ── */
+.agent-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px 24px 12px 24px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.agent-info-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 2px;
+}
+
+.agent-info-tags {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.agent-info-tags span {
+  color: var(--text-secondary);
+}
+
+.agent-info-tags .dot {
+  color: var(--text-muted);
+  margin: 0 6px;
+}
+
+.btn-clear-chat {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.btn-clear-chat:hover {
+  color: var(--text-secondary);
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.03);
+}
+
+/* ── Chat Area ── */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Empty state */
+.chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  color: var(--text-muted);
+  opacity: 0.35;
+  margin-bottom: 8px;
+}
+
+.empty-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+}
+
+/* Quick actions */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+  max-width: 640px;
+}
+
+.quick-chip {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.2s, background 0.15s;
+}
+
+.quick-chip:hover {
+  color: var(--text-primary);
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.03);
+}
+
+/* Messages */
+.msg {
+  max-width: 680px;
+  margin-bottom: 16px;
+  animation: msgIn 0.3s ease-out;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: rgba(0,212,255,0.08);
+  border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 16px;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.msg-assistant {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 680px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 14px 4px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msg-assistant.error {
+  border-color: rgba(239,68,68,0.3);
+  background: rgba(239,68,68,0.06);
+  color: #fca5a5;
+}
+
+.msg-assistant-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.typing {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing 1.2s infinite ease-in-out;
+}
+.typing span:nth-child(2) { animation-delay: 0.15s; }
+.typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ── Input Area ── */
+.input-area {
+  padding: 12px 24px 18px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.input-field {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 12px 16px;
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  min-height: 44px;
+  max-height: 160px;
+  overflow-y: auto;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-send {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-send:hover {
+  color: var(--text-primary);
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+}
+
+.btn-send.has-text {
+  color: var(--cyan);
+  border-color: rgba(0,212,255,0.3);
+}
+
+.btn-send.has-text:hover {
+  background: rgba(0,212,255,0.08);
+}
+</style>
+</head>
+<body>
+
+<div class="gradient-line"></div>
+
+<header class="topbar">
+  <div class="logo-group">
+    <span class="logo-text">ATLAS</span>
+    <span class="logo-subtitle">COMMAND CENTRE</span>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="agents-status">
+    <span class="status-dot"></span>
+    4 AGENTS ONLINE
+  </div>
+  <div class="spacer"></div>
+  <div class="date" id="topDate"></div>
+</header>
+
+<div class="session-brief">
+  <div class="brief-header" id="briefHeader">
+    <span class="brief-icon">&#9889;</span>
+    <span class="brief-label">SESSION BRIEF</span>
+    <span class="brief-badge apply" id="briefBadge">APPLY</span>
+    <span class="brief-chevron" id="briefChevron">&#9662;</span>
+  </div>
+  <div class="brief-body" id="briefBody">
+    <textarea class="brief-textarea" id="briefTextarea" placeholder="Paste session context here... This will be appended to every agent prompt."></textarea>
+    <button class="btn-apply" id="btnApply">APPLY BRIEF</button>
+  </div>
+</div>
+
+<nav class="agent-tabs" id="agentTabs"></nav>
+
+<div class="agent-info" id="agentInfo">
+  <div class="agent-info-name" id="agentName"></div>
+  <div class="agent-info-tags" id="agentTags"></div>
+  <button class="btn-clear-chat" id="btnClear">CLEAR CHAT</button>
+</div>
+
+<div class="chat-area" id="chatArea"></div>
+
+<div class="input-area">
+  <textarea class="input-field" id="inputField" placeholder="" rows="1"></textarea>
+  <button class="btn-send" id="btnSend">&#8594;</button>
+</div>
+
+<script>
+/* ── Agent Data ── */
+const agents = [
+  {
+    id: 'archivist',
+    name: 'THE ARCHIVIST',
+    icon: '\u25CE',
+    color: '#00d4ff',
+    tags: ['State recall', 'Open issues', 'Version history', 'Project status'],
+    quickActions: [
+      'Where are we with ATLAS right now?',
+      'What bugs are currently open?',
+      'Give me a full project status report',
+      'What were we last working on?'
+    ],
+    context: 'ATLAS is an investment analytics terminal built on Supabase + React. It tracks ~55 equity positions via Alpaca paper trading. Uses FIFO NAV methodology. Frontend is a single-file React SPA deployed on Vercel. Backend is PostgreSQL views in Supabase. Sync runs via GitHub Actions every 15 minutes.',
+    history: []
+  },
+  {
+    id: 'architect',
+    name: 'THE ARCHITECT',
+    icon: '\u2B21',
+    color: '#8b5cf6',
+    tags: ['Schema design', 'SQL views', 'Data architecture', 'Migration strategy'],
+    quickActions: [
+      'Show me the current database schema',
+      'Which views need optimization?',
+      'Design a new view for X',
+      'Audit the FIFO NAV calculation'
+    ],
+    context: 'ATLAS uses Supabase PostgreSQL with 5 base tables (portfolios, assets, positions, transactions, price_history) and 7 analytics views (vw_portfolio_home, vw_quant_dashboard, vw_risk_analysis, vw_performance_suite, vw_command_centre, vw_portfolio_nav_daily, vw_portfolio_returns_daily). All analytics computed in SQL, never frontend. FIFO NAV in vw_portfolio_nav_daily.',
+    history: []
+  },
+  {
+    id: 'engineer',
+    name: 'THE ENGINEER',
+    icon: '\u25C8',
+    color: '#10b981',
+    tags: ['Implementation specs', 'Bug fixes', 'Code architecture', 'Deployment'],
+    quickActions: [
+      'Write a spec for the next feature',
+      'How should I fix this bug?',
+      'Review the sync pipeline architecture',
+      'Generate a deployment checklist'
+    ],
+    context: 'Repo: davenompozolo-blip/Latest-Atlas-Code. Frontend: public/index.html (React SPA via CDN). Sync: sync/run_sync.py (GitHub Actions). Services: services/. Legacy Streamlit: ui/pages/. Deploy: Vercel static site. Config: vercel.json, inject-env.js for key injection.',
+    history: []
+  },
+  {
+    id: 'strategist',
+    name: 'THE STRATEGIST',
+    icon: '\u25C6',
+    color: '#f59e0b',
+    tags: ['Product roadmap', 'Feature priority', 'Release planning', 'Commercial strategy'],
+    quickActions: [
+      'What should we build next?',
+      'Prioritize the current backlog',
+      'Create a release plan for v2',
+      'How do we monetize ATLAS?'
+    ],
+    context: 'Current: React terminal on Vercel, Alpaca sync via GitHub Actions, Streamlit being retired. Done: FIFO NAV views, 7 analytics views, OCC options fix, Vercel deployment. Next: live data pipeline, scheduled sync stability, Streamlit retirement, real-time features.',
+    history: []
+  }
+];
+
+/* ── State ── */
+let activeAgentId = 'archivist';
+let sessionBrief = '';
+let briefOpen = false;
+
+/* ── DOM refs ── */
+const $tabs = document.getElementById('agentTabs');
+const $agentName = document.getElementById('agentName');
+const $agentTags = document.getElementById('agentTags');
+const $chatArea = document.getElementById('chatArea');
+const $input = document.getElementById('inputField');
+const $btnSend = document.getElementById('btnSend');
+const $btnClear = document.getElementById('btnClear');
+const $briefHeader = document.getElementById('briefHeader');
+const $briefBody = document.getElementById('briefBody');
+const $briefBadge = document.getElementById('briefBadge');
+const $briefChevron = document.getElementById('briefChevron');
+const $briefTextarea = document.getElementById('briefTextarea');
+const $btnApply = document.getElementById('btnApply');
+const $topDate = document.getElementById('topDate');
+
+/* ── Date ── */
+function formatDate() {
+  const d = new Date();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+$topDate.textContent = formatDate();
+
+/* ── Render Tabs ── */
+function renderTabs() {
+  $tabs.innerHTML = '';
+  agents.forEach((agent, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'tab-separator';
+      sep.textContent = '|';
+      $tabs.appendChild(sep);
+    }
+    const btn = document.createElement('button');
+    btn.className = 'agent-tab' + (agent.id === activeAgentId ? ' active' : '');
+    btn.innerHTML = `<span class="agent-tab-icon">${agent.icon}</span>${agent.name}`;
+    if (agent.id === activeAgentId) {
+      btn.style.borderBottomColor = agent.color;
+      btn.style.color = 'var(--text-primary)';
+    }
+    btn.addEventListener('click', () => switchAgent(agent.id));
+    $tabs.appendChild(btn);
+  });
+}
+
+/* ── Switch Agent ── */
+function switchAgent(id) {
+  activeAgentId = id;
+  renderTabs();
+  renderAgentInfo();
+  renderChat();
+  updateInputPlaceholder();
+}
+
+/* ── Agent Info ── */
+function renderAgentInfo() {
+  const agent = agents.find(a => a.id === activeAgentId);
+  $agentName.textContent = agent.name;
+  $agentName.style.color = agent.color;
+
+  $agentTags.innerHTML = agent.tags.map((t, i) =>
+    `<span>${t}</span>${i < agent.tags.length - 1 ? '<span class="dot">&middot;</span>' : ''}`
+  ).join('');
+}
+
+/* ── Input Placeholder ── */
+function updateInputPlaceholder() {
+  const agent = agents.find(a => a.id === activeAgentId);
+  const label = agent.name.replace('THE ', '').toLowerCase();
+  $input.placeholder = `Message the ${label}...`;
+}
+
+/* ── Render Chat ── */
+function renderChat() {
+  const agent = agents.find(a => a.id === activeAgentId);
+  $chatArea.innerHTML = '';
+
+  if (agent.history.length === 0) {
+    /* Empty state */
+    const empty = document.createElement('div');
+    empty.className = 'chat-empty';
+    empty.innerHTML = `
+      <div class="empty-icon">${agent.icon}</div>
+      <div class="empty-text">${agent.name} STANDING BY</div>
+      <div class="quick-actions" id="quickActions"></div>
+    `;
+    $chatArea.appendChild(empty);
+
+    const qa = empty.querySelector('#quickActions');
+    agent.quickActions.forEach(text => {
+      const chip = document.createElement('button');
+      chip.className = 'quick-chip';
+      chip.textContent = text;
+      chip.addEventListener('click', () => {
+        $input.value = text;
+        autoResize();
+        sendMessage();
+      });
+      qa.appendChild(chip);
+    });
+  } else {
+    agent.history.forEach(msg => {
+      appendMessageDOM(msg);
+    });
+    scrollToBottom();
+  }
+}
+
+/* ── Append Message ── */
+function appendMessageDOM(msg) {
+  if (msg.role === 'user') {
+    const div = document.createElement('div');
+    div.className = 'msg msg-user';
+    div.textContent = msg.content;
+    $chatArea.appendChild(div);
+  } else if (msg.role === 'assistant') {
+    const div = document.createElement('div');
+    div.className = 'msg msg-assistant' + (msg.error ? ' error' : '');
+    const label = document.createElement('div');
+    label.className = 'msg-assistant-label';
+    const agent = agents.find(a => a.id === activeAgentId);
+    label.textContent = msg.error ? 'ERROR' : agent.name;
+    const body = document.createElement('div');
+    body.textContent = msg.content;
+    div.appendChild(label);
+    div.appendChild(body);
+    $chatArea.appendChild(div);
+  }
+}
+
+/* ── Build System Prompt ── */
+function buildSystem(agent) {
+  let system = `You are ${agent.name}, a specialist in ${agent.tags.join(', ')} for the ATLAS investment analytics terminal.\n\nContext:\n${agent.context}`;
+  if (sessionBrief.trim()) {
+    system += '\n\nSESSION BRIEF:\n' + sessionBrief;
+  }
+  system += '\n\nRespond with detailed, actionable answers. Cite files, tables, or views by name when relevant.';
+  return system;
+}
+
+/* ── Send Message ── */
+let inflight = false;
+async function sendMessage() {
+  if (inflight) return;
+  const text = $input.value.trim();
+  if (!text) return;
+
+  const agent = agents.find(a => a.id === activeAgentId);
+
+  /* Push user message into history (Anthropic-shaped) */
+  agent.history.push({ role: 'user', content: text });
+
+  /* Clear input */
+  $input.value = '';
+  autoResize();
+  updateSendButton();
+
+  /* Render user message + typing indicator */
+  renderChat();
+  const typingEl = document.createElement('div');
+  typingEl.className = 'msg msg-assistant';
+  typingEl.innerHTML = `<div class="msg-assistant-label">${agent.name}</div><div class="typing"><span></span><span></span><span></span></div>`;
+  $chatArea.appendChild(typingEl);
+  scrollToBottom();
+
+  inflight = true;
+  try {
+    const resp = await fetch('/api/command-centre', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agent: agent.id,
+        system: buildSystem(agent),
+        messages: agent.history.map(m => ({ role: m.role, content: m.content })),
+        max_tokens: 2048,
+      }),
+    });
+
+    const data = await resp.json();
+    typingEl.remove();
+
+    if (!resp.ok) {
+      const errMsg = (data && (data.error || data.detail)) || `HTTP ${resp.status}`;
+      agent.history.push({ role: 'assistant', content: String(errMsg), error: true });
+    } else {
+      const assistantText = Array.isArray(data.content)
+        ? data.content.filter(b => b.type === 'text').map(b => b.text).join('\n\n')
+        : (data.completion || '[empty response]');
+      agent.history.push({ role: 'assistant', content: assistantText });
+    }
+  } catch (err) {
+    typingEl.remove();
+    agent.history.push({
+      role: 'assistant',
+      content: 'Network error: ' + (err && err.message ? err.message : String(err)),
+      error: true,
+    });
+  } finally {
+    inflight = false;
+    renderChat();
+  }
+}
+
+/* ── Scroll ── */
+function scrollToBottom() {
+  requestAnimationFrame(() => {
+    $chatArea.scrollTop = $chatArea.scrollHeight;
+  });
+}
+
+/* ── Auto-resize textarea ── */
+function autoResize() {
+  $input.style.height = 'auto';
+  $input.style.height = Math.min($input.scrollHeight, 160) + 'px';
+}
+
+/* ── Send button state ── */
+function updateSendButton() {
+  if ($input.value.trim()) {
+    $btnSend.classList.add('has-text');
+  } else {
+    $btnSend.classList.remove('has-text');
+  }
+}
+
+/* ── Event Listeners ── */
+
+/* Input */
+$input.addEventListener('input', () => {
+  autoResize();
+  updateSendButton();
+});
+
+$input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+$btnSend.addEventListener('click', sendMessage);
+
+/* Clear chat */
+$btnClear.addEventListener('click', () => {
+  const agent = agents.find(a => a.id === activeAgentId);
+  agent.history = [];
+  renderChat();
+});
+
+/* Session Brief toggle */
+$briefHeader.addEventListener('click', () => {
+  briefOpen = !briefOpen;
+  if (briefOpen) {
+    $briefBody.classList.add('open');
+    $briefChevron.innerHTML = '&#9652;';
+  } else {
+    $briefBody.classList.remove('open');
+    $briefChevron.innerHTML = '&#9662;';
+  }
+});
+
+/* Apply brief */
+$btnApply.addEventListener('click', () => {
+  sessionBrief = $briefTextarea.value.trim();
+  if (sessionBrief) {
+    $briefBadge.textContent = 'ACTIVE';
+    $briefBadge.className = 'brief-badge active';
+  } else {
+    $briefBadge.textContent = 'APPLY';
+    $briefBadge.className = 'brief-badge apply';
+  }
+});
+
+/* ── Init ── */
+renderTabs();
+renderAgentInfo();
+renderChat();
+updateInputPlaceholder();
+</script>
+</body>
+</html>
