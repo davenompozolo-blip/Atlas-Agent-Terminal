@@ -455,12 +455,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       <button class="btn-modal-close" id="btnGhClose">&#215;</button>
     </div>
     <div class="modal-body">
-      <p class="modal-desc">Connect a GitHub repository so agents receive your codebase file tree, recent commits, and open issues as live context. Your token is stored in this browser only — it is never sent to our servers.</p>
-      <div class="form-group">
-        <label class="form-label">PERSONAL ACCESS TOKEN</label>
-        <input class="form-input" type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
-        <span class="form-hint">Needs <code>repo</code> read scope (or <code>public_repo</code> for public repos)</span>
-      </div>
+      <p class="modal-desc">Connect a GitHub repository so agents receive your codebase file tree, recent commits, and open issues as live context. Your <code>GITHUB_PAT</code> is read from the server — just enter the repository name.</p>
       <div class="form-group">
         <label class="form-label">REPOSITORY</label>
         <input class="form-input" type="text" id="ghRepo" placeholder="owner/repo-name">
@@ -529,7 +524,7 @@ const state = {
                       //   messages = null  → not yet fetched from Supabase
                       //   messages = []    → new/empty chat
   brief:        _prefs.brief        || '',
-  github:       _prefs.github       || { token: '', repo: '', context: '' },
+  github:       _prefs.github       || { repo: '', context: '' },
   sidebarOpen:  _prefs.sidebarOpen  !== false,
   booting:      true,
 };
@@ -563,8 +558,34 @@ const API = {
   },
 };
 
-/* ── Boot: load chats from Supabase ────────────────────────────────────── */
+/* ── Migrate old localStorage chats into Supabase (one-time) ───────────── */
+async function migrateLocalChats() {
+  try {
+    const oldRaw = localStorage.getItem('atlas-cc-v2');
+    if (!oldRaw) return;
+    const old = JSON.parse(oldRaw);
+    if (!old || !old.chats) { localStorage.removeItem('atlas-cc-v2'); return; }
+
+    const toUpload = [];
+    Object.entries(old.chats).forEach(([agentId, chats]) => {
+      if (!Array.isArray(chats)) return;
+      chats.forEach(chat => {
+        if (Array.isArray(chat.messages) && chat.messages.length > 0) {
+          toUpload.push({ ...chat, agentId });
+        }
+      });
+    });
+
+    if (toUpload.length) {
+      await Promise.allSettled(toUpload.map(chat => API.upsertChat(chat)));
+    }
+    localStorage.removeItem('atlas-cc-v2');
+  } catch { /* non-critical */ }
+}
+
+/* ── Boot: migrate then load chats from Supabase ───────────────────────── */
 async function boot() {
+  await migrateLocalChats();
   try {
     const rows = await API.allChats();
     if (Array.isArray(rows)) {
@@ -572,19 +593,16 @@ async function boot() {
         const agentId = row.agent_id;
         if (!state.chats[agentId]) state.chats[agentId] = [];
         state.chats[agentId].push({
-          id:      row.id,
-          agentId: agentId,
-          title:   row.title,
-          ts:      new Date(row.updated_at).getTime(),
-          messages: null, // lazy — fetched when opened
+          id:       row.id,
+          agentId:  agentId,
+          title:    row.title,
+          ts:       new Date(row.updated_at).getTime(),
+          messages: null,
         });
       });
-      // Sort each list newest first
       Object.keys(state.chats).forEach(a => state.chats[a].sort((x, y) => y.ts - x.ts));
     }
-  } catch {
-    // Supabase unavailable — fall back to empty history
-  }
+  } catch { /* Supabase unavailable — start with empty history */ }
   state.booting = false;
   renderAll();
   $inputField.focus();
@@ -615,7 +633,6 @@ const $ghDot        = document.getElementById('ghDot');
 const $ghBtnLabel   = document.getElementById('ghBtnLabel');
 const $ghModal      = document.getElementById('ghModal');
 const $btnGhClose   = document.getElementById('btnGhClose');
-const $ghToken      = document.getElementById('ghToken');
 const $ghRepo       = document.getElementById('ghRepo');
 const $ghStatus     = document.getElementById('ghStatus');
 const $btnGhConnect    = document.getElementById('btnGhConnect');
@@ -1032,8 +1049,7 @@ function updateSendBtn() {
 
 /* ── GitHub connect ─────────────────────────────────────────────────────── */
 function openGhModal() {
-  $ghToken.value = state.github.token || '';
-  $ghRepo.value  = state.github.repo  || '';
+  $ghRepo.value         = state.github.repo || '';
   $ghStatus.textContent = '';
   $ghStatus.className   = 'modal-status';
   updateGhModalUI();
@@ -1053,45 +1069,19 @@ function updateGhModalUI() {
 }
 
 async function connectGitHub() {
-  const token = $ghToken.value.trim();
-  const repo  = $ghRepo.value.trim();
-  if (!token || !repo || !repo.includes('/')) { setGhStatus('Enter a valid token and repository (owner/repo)', 'err'); return; }
+  const repo = $ghRepo.value.trim();
+  if (!repo || !repo.includes('/')) { setGhStatus('Enter repository as owner/repo', 'err'); return; }
 
-  setGhStatus('Connecting…', '');
+  setGhStatus('Fetching repository context…', '');
   $btnGhConnect.disabled = true;
   try {
-    const headers = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' };
-    const base = `https://api.github.com/repos/${repo}`;
-    const [repoRes, commitsRes, issuesRes, treeRes] = await Promise.all([
-      fetch(base, { headers }),
-      fetch(`${base}/commits?per_page=8`, { headers }),
-      fetch(`${base}/issues?state=open&per_page=10`, { headers }),
-      fetch(`${base}/git/trees/HEAD?recursive=false`, { headers }),
-    ]);
-    if (!repoRes.ok) throw new Error(`Repo not found or token lacks access (HTTP ${repoRes.status})`);
+    const r    = await fetch(`/api/github-context?repo=${encodeURIComponent(repo)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
 
-    const [repoData, commits, issues, tree] = await Promise.all([repoRes.json(), commitsRes.json(), issuesRes.json(), treeRes.json()]);
-
-    let ctx = `Repository: ${repoData.full_name}\n`;
-    if (repoData.description) ctx += `Description: ${repoData.description}\n`;
-    ctx += `Default branch: ${repoData.default_branch} · Stars: ${repoData.stargazers_count}\n`;
-
-    if (Array.isArray(tree.tree)) {
-      const files = tree.tree.filter(f => f.type === 'blob' || f.type === 'tree').map(f => f.type === 'tree' ? `📁 ${f.path}/` : `  ${f.path}`).slice(0, 60);
-      if (files.length) ctx += `\nRoot file tree:\n${files.join('\n')}`;
-    }
-    if (Array.isArray(commits) && commits.length) {
-      ctx += `\n\nRecent commits:\n`;
-      commits.slice(0, 8).forEach(c => { ctx += `  ${(c.sha||'').slice(0,7)} ${(c.commit?.message||'').split('\n')[0]}\n`; });
-    }
-    if (Array.isArray(issues) && issues.length) {
-      ctx += `\nOpen issues (${issues.length}):\n`;
-      issues.slice(0, 10).forEach(i => { ctx += `  #${i.number} ${i.title}\n`; });
-    }
-
-    state.github = { token, repo, context: ctx };
+    state.github = { repo: data.repo, context: data.context };
     saveLocalPrefs();
-    setGhStatus(`✓ Connected to ${repo}`, 'ok');
+    setGhStatus(`✓ Connected to ${data.repo}`, 'ok');
     updateGhModalUI();
     renderGhBadge();
   } catch (err) {
@@ -1102,7 +1092,7 @@ async function connectGitHub() {
 }
 
 function disconnectGitHub() {
-  state.github = { token: '', repo: '', context: '' };
+  state.github = { repo: '', context: '' };
   saveLocalPrefs();
   $ghStatus.textContent = '';
   updateGhModalUI();
