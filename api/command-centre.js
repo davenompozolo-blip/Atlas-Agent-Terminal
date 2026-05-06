@@ -9,7 +9,7 @@
 //   ATLAS_ALLOWED_ORIGIN    - optional CORS origin
 
 const DEFAULT_MODEL      = 'claude-opus-4-6';
-const DEFAULT_MAX_TOKENS = 2048;
+const DEFAULT_MAX_TOKENS = 16000;
 
 const AGENT_SYSTEM_PROMPTS = {
   archivist:  'You are the ATLAS Archivist. You catalogue decisions, rationales, and portfolio history with precision. Cite dates and sources. Never speculate.',
