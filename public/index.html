@@ -377,6 +377,174 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .btn-gh-disconnect:hover { background: rgba(239,68,68,0.13); }
 .gh-context-preview { margin-top: 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-sec); line-height: 1.6; max-height: 140px; overflow-y: auto; white-space: pre-wrap; }
 
+/* ── Workspace nav (Memory) ────────────────────────────────────────────────── */
+.workspace-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 14px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+  user-select: none;
+}
+.workspace-item:hover { background: rgba(255,255,255,0.03); }
+.workspace-item.active { border-left-color: var(--cyan); background: rgba(0,212,255,0.05); }
+.workspace-icon { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; }
+.workspace-name { font-size: 13px; font-weight: 500; color: var(--text-sec); flex: 1; letter-spacing: 0.5px; }
+.workspace-item.active .workspace-name { color: var(--text); }
+.workspace-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-faint);
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ── Memory Manager ────────────────────────────────────────────────────────── */
+.memory-manager { padding: 0 0 40px; }
+
+.memory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.memory-title-text {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: var(--text);
+}
+.memory-total {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-left: 12px;
+}
+.btn-add-mem {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,212,255,0.25);
+  background: rgba(0,212,255,0.07);
+  color: var(--cyan);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-add-mem:hover { background: rgba(0,212,255,0.13); border-color: rgba(0,212,255,0.4); }
+
+.memory-stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mem-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--cat-color, var(--text-sec));
+  padding: 3px 10px 3px 7px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--cat-color, #888) 25%, transparent);
+  background: color-mix(in srgb, var(--cat-color, #888) 8%, transparent);
+}
+.mem-stat-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--cat-color, #888); }
+.mem-stat b { font-weight: 600; }
+
+.memory-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.mem-filter-select, .mem-search-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  padding: 7px 12px;
+  outline: none;
+  transition: border-color 0.18s;
+}
+.mem-filter-select:focus, .mem-search-input:focus { border-color: rgba(255,255,255,0.12); }
+.mem-filter-select { flex-shrink: 0; }
+.mem-search-input  { flex: 1; }
+.mem-search-input::placeholder { color: var(--text-muted); }
+
+.memory-list { display: flex; flex-direction: column; gap: 6px; }
+
+.mem-row {
+  display: grid;
+  grid-template-columns: 28px 110px 140px 1fr 140px 80px 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.15s;
+  cursor: default;
+}
+.mem-row:hover { border-color: var(--border-hover); }
+
+.mem-priority { font-size: 11px; color: var(--amber); letter-spacing: -2px; white-space: nowrap; }
+.cat-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  display: inline-block;
+}
+.mem-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: var(--text-sec);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mem-content { font-size: 12.5px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mem-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.mem-tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-muted); background: rgba(255,255,255,0.05); border-radius: 3px; padding: 1px 5px; white-space: nowrap; }
+.mem-date { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-faint); text-align: right; }
+.mem-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.mem-btn-edit, .mem-btn-del {
+  background: none; border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text-muted); cursor: pointer; font-size: 13px;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.mem-btn-edit:hover { color: var(--cyan); border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.06); }
+.mem-btn-del:hover  { color: var(--red);  border-color: rgba(239,68,68,0.3);  background: rgba(239,68,68,0.06); }
+
+.mem-empty {
+  text-align: center;
+  padding: 48px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 680px) {
   .sidebar { position: fixed; top: 2px; left: 0; bottom: 0; z-index: 50; transform: translateX(-100%); transition: transform 0.22s ease; }
@@ -398,6 +566,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <button class="btn-new-chat" id="btnNew"><span class="new-icon">＋</span> New Chat</button>
     <div class="agent-section-label">AGENTS</div>
     <nav class="agent-nav" id="agentNav"></nav>
+    <div class="agent-section-label">WORKSPACE</div>
+    <div class="workspace-item" id="navMemory">
+      <span class="workspace-icon">🧠</span>
+      <span class="workspace-name">MEMORY</span>
+      <span class="workspace-badge" id="memBadge"></span>
+    </div>
     <div class="history-panel" id="historyPanel"></div>
     <div class="sidebar-footer">
       <button class="btn-github-conn" id="btnGhConn">
@@ -442,6 +616,53 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
           <button class="btn-send" id="btnSend">&#8594;</button>
         </div>
         <div class="input-hint">Shift+Enter for new line &middot; Enter to send</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Memory modal (add / edit) -->
+<div class="modal-overlay" id="memModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="memModalTitle">ADD MEMORY</span>
+      <button class="btn-modal-close" id="btnMemClose">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">CATEGORY</label>
+        <select class="form-input" id="memCat">
+          <option value="decision">decision</option>
+          <option value="context">context</option>
+          <option value="preference">preference</option>
+          <option value="architecture">architecture</option>
+          <option value="bug">bug</option>
+          <option value="roadmap">roadmap</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">KEY <span class="form-hint" style="display:inline">(short unique identifier)</span></label>
+        <input class="form-input" type="text" id="memKey" placeholder="e.g. nav-source-preference">
+      </div>
+      <div class="form-group">
+        <label class="form-label">CONTENT</label>
+        <textarea class="form-input" id="memContent" rows="4" style="resize:vertical;min-height:80px;font-family:'DM Sans',sans-serif;" placeholder="The memory content…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">TAGS <span class="form-hint" style="display:inline">(comma-separated)</span></label>
+        <input class="form-input" type="text" id="memTags" placeholder="nav, supabase, priority">
+      </div>
+      <div class="form-group">
+        <label class="form-label">PRIORITY</label>
+        <select class="form-input" id="memPriority">
+          <option value="0">0 — Normal</option>
+          <option value="1">1 — Important</option>
+          <option value="2">2 — Critical (always load)</option>
+        </select>
+      </div>
+      <div class="modal-status" id="memStatus"></div>
+      <div class="modal-actions">
+        <button class="btn-gh-action btn-gh-connect" id="btnMemSave">SAVE</button>
       </div>
     </div>
   </div>
@@ -512,8 +733,8 @@ function loadLocalPrefs() {
   try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || {}; } catch { return {}; }
 }
 function saveLocalPrefs() {
-  const { activeAgent, activeChat, brief, github, sidebarOpen } = state;
-  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ activeAgent, activeChat, brief, github, sidebarOpen })); } catch {}
+  const { activeAgent, activeChat, brief, github, sidebarOpen, view } = state;
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ activeAgent, activeChat, brief, github, sidebarOpen, view })); } catch {}
 }
 
 const _prefs = loadLocalPrefs();
@@ -526,6 +747,7 @@ const state = {
   brief:        _prefs.brief        || '',
   github:       _prefs.github       || { repo: '', context: '' },
   sidebarOpen:  _prefs.sidebarOpen  !== false,
+  view:         _prefs.view         || 'chat',
   booting:      true,
 };
 
@@ -638,6 +860,7 @@ const $ghStatus     = document.getElementById('ghStatus');
 const $btnGhConnect    = document.getElementById('btnGhConnect');
 const $btnGhDisconnect = document.getElementById('btnGhDisconnect');
 const $ghPreview    = document.getElementById('ghPreview');
+const $inputWrap    = document.querySelector('.input-wrap');
 
 /* ── Helpers ────────────────────────────────────────────────────────────── */
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -733,6 +956,202 @@ function buildSystem(agent) {
   return sys;
 }
 
+/* ── Category colours ───────────────────────────────────────────────────── */
+const CATEGORY_COLORS = {
+  decision:     '#00d4ff',
+  context:      '#8b5cf6',
+  preference:   '#f59e0b',
+  architecture: '#10b981',
+  bug:          '#ef4444',
+  roadmap:      '#a78bfa',
+};
+
+/* ── Memory API helpers ─────────────────────────────────────────────────── */
+const MEM_API = {
+  async list({ category, search } = {}) {
+    const params = new URLSearchParams({ limit: '500' });
+    if (category) params.set('category', category);
+    if (search)   params.set('search',   search);
+    const r = await fetch(`/api/memory?${params}`);
+    if (!r.ok) throw new Error(`memory API ${r.status}`);
+    return r.json();
+  },
+  async upsert(record) {
+    const r = await fetch('/api/memory', {
+      method:  'POST',
+      headers: { 'content-type': 'application/json' },
+      body:    JSON.stringify(record),
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || `memory API ${r.status}`);
+    }
+    return r.json();
+  },
+  async delete(id) {
+    const r = await fetch('/api/memory', {
+      method:  'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body:    JSON.stringify({ id }),
+    });
+    if (!r.ok) throw new Error(`memory API ${r.status}`);
+  },
+};
+
+/* ── Memory view state ──────────────────────────────────────────────────── */
+let _memRecords      = [];
+let _memEditing      = null;
+let _memFilterCat    = '';
+let _memFilterSearch = '';
+let _memSearchTimer;
+
+function updateMemBadge(count) {
+  document.getElementById('memBadge').textContent = count > 0 ? String(count) : '';
+}
+
+/* ── Memory manager render ──────────────────────────────────────────────── */
+async function renderMemoryManager() {
+  $inputWrap.style.display = 'none';
+  $msgInner.innerHTML = '<div class="loading-state"><div class="spinner"></div><div class="loading-label">LOADING MEMORY</div></div>';
+  try {
+    _memRecords = await MEM_API.list({
+      category: _memFilterCat    || undefined,
+      search:   _memFilterSearch || undefined,
+    });
+  } catch { _memRecords = []; }
+  updateMemBadge(_memRecords.length);
+  renderMemoryList(_memRecords);
+}
+
+function renderMemoryList(records) {
+  const counts = {};
+  records.forEach(r => { counts[r.category] = (counts[r.category] || 0) + 1; });
+
+  const statsHtml = Object.entries(counts).map(([cat, n]) => {
+    const color = CATEGORY_COLORS[cat] || '#888';
+    return `<div class="mem-stat" style="--cat-color:${color}"><span class="mem-stat-dot"></span><b>${n}</b>&nbsp;${escHtml(cat)}</div>`;
+  }).join('');
+
+  const rowsHtml = records.length
+    ? records.map(rec => {
+        const color = CATEGORY_COLORS[rec.category] || '#888';
+        const stars = '★'.repeat(Math.min(2, rec.priority || 0)) + '☆'.repeat(Math.max(0, 2 - (rec.priority || 0)));
+        const tags  = (rec.tags || []).map(t => `<span class="mem-tag">${escHtml(t)}</span>`).join('');
+        const date  = rec.updated_at
+          ? new Date(rec.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+          : '';
+        return `
+          <div class="mem-row" data-id="${escHtml(rec.id)}">
+            <span class="mem-priority">${stars}</span>
+            <span class="cat-badge" style="color:${color};border-color:color-mix(in srgb,${color} 25%,transparent);background:color-mix(in srgb,${color} 10%,transparent)">${escHtml(rec.category)}</span>
+            <span class="mem-key" title="${escHtml(rec.key)}">${escHtml(rec.key)}</span>
+            <span class="mem-content" title="${escHtml(rec.content)}">${escHtml(rec.content)}</span>
+            <div class="mem-tags">${tags}</div>
+            <span class="mem-date">${date}</span>
+            <div class="mem-actions">
+              <button class="mem-btn-edit" data-id="${escHtml(rec.id)}" title="Edit">✎</button>
+              <button class="mem-btn-del"  data-id="${escHtml(rec.id)}" title="Delete">✕</button>
+            </div>
+          </div>`;
+      }).join('')
+    : '<div class="mem-empty">No memories found — add one to begin.</div>';
+
+  $msgInner.innerHTML = `
+    <div class="memory-manager">
+      <div class="memory-header">
+        <div style="display:flex;align-items:baseline;gap:0">
+          <span class="memory-title-text">MEMORY</span>
+          <span class="memory-total">${records.length} record${records.length !== 1 ? 's' : ''}</span>
+        </div>
+        <button class="btn-add-mem" id="btnAddMem">+ ADD MEMORY</button>
+      </div>
+      <div class="memory-stats-bar">${statsHtml}</div>
+      <div class="memory-filters">
+        <select class="mem-filter-select" id="memFilterCat">
+          <option value="">All categories</option>
+          <option value="decision"${_memFilterCat==='decision'?' selected':''}>decision</option>
+          <option value="context"${_memFilterCat==='context'?' selected':''}>context</option>
+          <option value="preference"${_memFilterCat==='preference'?' selected':''}>preference</option>
+          <option value="architecture"${_memFilterCat==='architecture'?' selected':''}>architecture</option>
+          <option value="bug"${_memFilterCat==='bug'?' selected':''}>bug</option>
+          <option value="roadmap"${_memFilterCat==='roadmap'?' selected':''}>roadmap</option>
+        </select>
+        <input class="mem-search-input" id="memFilterSearch" type="text" placeholder="Search content…" value="${escHtml(_memFilterSearch)}">
+      </div>
+      <div class="memory-list" id="memList">${rowsHtml}</div>
+    </div>`;
+
+  document.getElementById('btnAddMem').addEventListener('click', () => openMemModal(null));
+  document.getElementById('memFilterCat').addEventListener('change', e => {
+    _memFilterCat = e.target.value;
+    renderMemoryManager();
+  });
+  document.getElementById('memFilterSearch').addEventListener('input', e => {
+    _memFilterSearch = e.target.value;
+    clearTimeout(_memSearchTimer);
+    _memSearchTimer = setTimeout(renderMemoryManager, 400);
+  });
+  document.querySelectorAll('.mem-btn-edit').forEach(btn => {
+    const rec = _memRecords.find(r => r.id === btn.dataset.id);
+    if (rec) btn.addEventListener('click', () => openMemModal(rec));
+  });
+  document.querySelectorAll('.mem-btn-del').forEach(btn => {
+    btn.addEventListener('click', () => deleteMemRow(btn.dataset.id));
+  });
+}
+
+/* ── Memory modal ───────────────────────────────────────────────────────── */
+const $memModal = document.getElementById('memModal');
+
+function openMemModal(rec) {
+  _memEditing = rec || null;
+  document.getElementById('memModalTitle').textContent = rec ? 'EDIT MEMORY' : 'ADD MEMORY';
+  document.getElementById('memCat').value      = rec ? rec.category            : 'decision';
+  document.getElementById('memKey').value      = rec ? rec.key                 : '';
+  document.getElementById('memContent').value  = rec ? rec.content             : '';
+  document.getElementById('memTags').value     = rec ? (rec.tags||[]).join(', '): '';
+  document.getElementById('memPriority').value = rec ? String(rec.priority||0) : '0';
+  document.getElementById('memKey').disabled   = !!rec;
+  setMemStatus('', '');
+  $memModal.style.display = 'flex';
+}
+
+function closeMemModal() { $memModal.style.display = 'none'; }
+
+async function saveMemory() {
+  const category = document.getElementById('memCat').value.trim();
+  const key      = _memEditing ? _memEditing.key : document.getElementById('memKey').value.trim();
+  const content  = document.getElementById('memContent').value.trim();
+  const tagsRaw  = document.getElementById('memTags').value.trim();
+  const priority = parseInt(document.getElementById('memPriority').value, 10);
+
+  if (!category || !key || !content) { setMemStatus('Category, key and content are required', 'err'); return; }
+
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  setMemStatus('Saving…', '');
+  document.getElementById('btnMemSave').disabled = true;
+  try {
+    await MEM_API.upsert({ category, key, content, tags, priority, source: 'terminal' });
+    setMemStatus('Saved ✓', 'ok');
+    setTimeout(() => { closeMemModal(); renderMemoryManager(); }, 600);
+  } catch (err) {
+    setMemStatus(err.message || 'Save failed', 'err');
+  } finally {
+    document.getElementById('btnMemSave').disabled = false;
+  }
+}
+
+async function deleteMemRow(id) {
+  if (!confirm('Delete this memory?')) return;
+  try { await MEM_API.delete(id); renderMemoryManager(); } catch { /* ignore */ }
+}
+
+function setMemStatus(msg, type) {
+  const el = document.getElementById('memStatus');
+  el.textContent = msg;
+  el.className   = 'modal-status' + (type ? ' ' + type : '');
+}
+
 /* ── Render sidebar ─────────────────────────────────────────────────────── */
 function renderAgentNav() {
   $agentNav.innerHTML = '';
@@ -783,6 +1202,13 @@ function renderHistory() {
 
 /* ── Render header ──────────────────────────────────────────────────────── */
 function renderHeader() {
+  if (state.view === 'memory') {
+    $hAgentName.textContent = 'MEMORY MANAGER';
+    $hAgentName.style.color = 'var(--cyan)';
+    $hAgentTags.textContent = 'Persistent knowledge · Cross-session context · All agents';
+    renderGhBadge();
+    return;
+  }
   const agent = agentById(state.activeAgent);
   $hAgentName.textContent = agent.name;
   $hAgentName.style.color = agent.color;
@@ -1002,6 +1428,7 @@ async function sendMessage() {
 /* ── Agent switch ───────────────────────────────────────────────────────── */
 function switchAgent(id) {
   state.activeAgent = id;
+  state.view = 'chat';
   saveLocalPrefs();
   const chat = getActiveChat(id);
   if (chat && chat.messages === null) {
@@ -1030,7 +1457,13 @@ function renderAll() {
   renderAgentNav();
   renderHistory();
   renderHeader();
-  renderMessages(getActiveChat(state.activeAgent));
+  document.getElementById('navMemory').classList.toggle('active', state.view === 'memory');
+  if (state.view === 'memory') {
+    renderMemoryManager();
+  } else {
+    $inputWrap.style.display = '';
+    renderMessages(getActiveChat(state.activeAgent));
+  }
   applySidebarState();
 }
 
@@ -1106,6 +1539,7 @@ function setGhStatus(msg, type) {
 
 /* ── Events ─────────────────────────────────────────────────────────────── */
 $btnNew.addEventListener('click', () => {
+  state.view = 'chat';
   newChat(state.activeAgent);
   renderAll();
   $inputField.focus();
@@ -1139,7 +1573,17 @@ $btnGhClose.addEventListener('click', closeGhModal);
 $ghModal.addEventListener('click', e => { if (e.target === $ghModal) closeGhModal(); });
 $btnGhConnect.addEventListener('click', connectGitHub);
 $btnGhDisconnect.addEventListener('click', disconnectGitHub);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGhModal(); });
+
+document.getElementById('navMemory').addEventListener('click', () => {
+  state.view = 'memory';
+  saveLocalPrefs();
+  renderAll();
+});
+document.getElementById('btnMemClose').addEventListener('click', closeMemModal);
+$memModal.addEventListener('click', e => { if (e.target === $memModal) closeMemModal(); });
+document.getElementById('btnMemSave').addEventListener('click', saveMemory);
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeGhModal(); closeMemModal(); } });
 window.addEventListener('resize', applySidebarState);
 
 /* ── Boot ───────────────────────────────────────────────────────────────── */
