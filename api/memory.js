@@ -1,17 +1,16 @@
-// Vercel Serverless Function: CRUD for Command Centre chat history.
+// Vercel Serverless Function: CRUD for atlas_memory table.
 //
-// All reads and writes go through this function using the Supabase service role
-// key, so the key never reaches the browser and no anon RLS policies are needed.
+// Agents and the Memory Manager UI read/write through this endpoint.
+// The service role key stays server-side; the browser never sees it.
 //
-// Environment variables (set in Vercel project settings):
+// Environment variables:
 //   SUPABASE_URL              - e.g. https://xxxx.supabase.co
-//   SUPABASE_SERVICE_ROLE_KEY - service role secret key (also accepts SUPABASE_SERVICE_KEY)
+//   SUPABASE_SERVICE_ROLE_KEY - service role secret (also accepts SUPABASE_SERVICE_KEY)
 //
-// Routes (method + query params / body):
-//   GET  /api/chats              → all chats (id, agent_id, title, created_at, updated_at)
-//   GET  /api/chats?id=<id>      → single chat including full messages []
-//   POST /api/chats              → upsert { id, agent_id, title, messages[] }
-//   DELETE /api/chats            → body { id }
+// Routes:
+//   GET  /api/memory                          → list (params: category, priority, search, limit)
+//   POST /api/memory                          → upsert { category, key, content, tags[], priority, source }
+//   DELETE /api/memory                        → body { id }
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -24,10 +23,10 @@ module.exports = async function handler(req, res) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key) {
-    return res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_KEY not configured' });
+    return res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured' });
   }
 
-  const base    = `${url}/rest/v1/cc_chats`;
+  const base    = `${url}/rest/v1/atlas_memory`;
   const headers = {
     'apikey':        key,
     'Authorization': `Bearer ${key}`,
@@ -37,18 +36,17 @@ module.exports = async function handler(req, res) {
 
   // ── GET ─────────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
-    const { id } = req.query;
+    const { category, priority, search, limit = '200' } = req.query;
+    const params = new URLSearchParams({
+      select: '*',
+      order:  'priority.desc,updated_at.desc',
+      limit,
+    });
+    if (category) params.set('category', `eq.${category}`);
+    if (priority) params.set('priority', `gte.${priority}`);
+    if (search)   params.set('content',  `ilike.*${search}*`);
 
-    // Single chat with messages
-    if (id) {
-      const r = await sbFetch(`${base}?id=eq.${encodeURIComponent(id)}&select=*&limit=1`, { headers });
-      if (!r.ok) return res.status(r.status).json(await r.json());
-      const rows = await r.json();
-      return res.status(200).json(rows[0] || null);
-    }
-
-    // All chats — metadata only (no messages column to keep payload small)
-    const r = await sbFetch(`${base}?select=id,agent_id,title,created_at,updated_at&order=updated_at.desc`, { headers });
+    const r = await sbFetch(`${base}?${params}`, { headers });
     if (!r.ok) return res.status(r.status).json(await r.json());
     return res.status(200).json(await r.json());
   }
@@ -57,16 +55,28 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST') {
     let body = req.body;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { return res.status(400).json({ error: 'Invalid JSON' }); } }
-    const { id, agent_id, title, messages } = body || {};
-    if (!id || !agent_id) return res.status(400).json({ error: 'id and agent_id required' });
+    const { category, key: memKey, content, tags, priority, source, session_id, expires_at } = body || {};
+    if (!category || !memKey || !content) {
+      return res.status(400).json({ error: 'category, key, and content are required' });
+    }
 
     const r = await sbFetch(base, {
       method:  'POST',
-      headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body:    JSON.stringify({ id, agent_id, title: title || null, messages: messages || [] }),
+      headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body:    JSON.stringify({
+        category,
+        key:        memKey,
+        content,
+        tags:       tags       || [],
+        priority:   priority   ?? 0,
+        source:     source     || 'terminal',
+        session_id: session_id || null,
+        expires_at: expires_at || null,
+      }),
     });
     if (!r.ok) return res.status(r.status).json(await r.json().catch(() => ({})));
-    return res.status(204).end();
+    const data = await r.json();
+    return res.status(200).json(Array.isArray(data) ? data[0] : data);
   }
 
   // ── DELETE ───────────────────────────────────────────────────────────────────
